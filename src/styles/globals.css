@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #FF5722;
+  --color-primary-hover: #e64a19;
+  --color-primary-light: #ff8a65;
+  --color-primary-soft: rgba(255, 87, 34, 0.08);
+
+  --color-black: #000;
+  --color-dark: #212121;
+  --color-body: #333;
+  --color-muted: #666;
+  --color-disabled: #999;
+  --color-border: #E0E0E0;
+  --color-background: #F9F9F9;
+  --color-surface: #FFF;
+
+  --color-info: #2196F3;
+  --color-info-light: #E3F2FD;
+
+  --color-success: #4CAF50;
+  --color-success-bg: #E8F5E9;
+  --color-error: #E53935;
+  --color-error-bg: #FFEBEE;
+  --color-warning: #FFC107;
+  --color-warning-bg: #FFF8E1;
+
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-shadow: rgba(0, 0, 0, 0.12);
+}
+
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--color-background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.button-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.card {
+  background-color: var(--color-surface);
+  box-shadow: 0 2px 6px var(--color-shadow);
+}
+
+input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-soft);
+}

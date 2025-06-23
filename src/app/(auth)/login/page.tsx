@@ -5,6 +5,7 @@ import FormOnSubmit from "@/_components/FormOnSubmit"
 
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import Image from "next/image"
 
 export default async function LoginPage() {
   const session = await getServerSession(authOptions)
@@ -29,7 +30,7 @@ export default async function LoginPage() {
           </div>
 
         </div>
-        <img className="h-full m-0 w-[50%] hidden md:block" src="/authImage1.png" alt="image-auth" />
+        <Image  className="h-full m-0 w-[50%] hidden md:block" src="/authImage1.png" alt="image-auth" />
       </div>
 
     </main>

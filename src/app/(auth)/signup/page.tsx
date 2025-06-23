@@ -7,6 +7,7 @@ import LoginWithGoogle from "@/_components/LoginWithGoogle"
 import FormOnSubmit from "@/_components/FormOnSubmit"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import Image from "next/image"
 
 async function SignupPage() {
     const session = await getServerSession(authOptions)
@@ -30,7 +31,7 @@ async function SignupPage() {
                 </div>
 
             </div>
-            <img className="h-screen" src="/authImage1.png" alt="image-auth" />
+            <Image className="h-screen" src="/authImage1.png" alt="image-auth" />
         </main>
     )
 }

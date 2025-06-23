@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Heart, User, Search, Menu, X } from 'lucide-react';
 import Link from 'next/link'
+import Image from 'next/image';
 
 const navigationLinks = [
   { name: "Home", href: "/", active: true },
@@ -56,7 +57,7 @@ const NavBarDesktop = () => {
         <nav className="text-(--color-font) flex justify-between items-center px-[40px] py-[12px] border-b border-gray-200">
             <div className="container mx-auto flex items-center gap-[32px]">
                 <div className="flex items-center space-x-2">
-                    <img src="/logo.svg" alt="logo-HotShop" />
+                    <Image src="/logo.svg" alt="logo-HotShop" />
                     <h1 className=" text-2xl">HotShop</h1>
                 </div>
                 <ul className="flex gap-[36px]">
@@ -86,7 +87,7 @@ const NavBarMobile = () => {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <div className="flex items-center space-x-2">
-                        <img src="/logo.svg" alt="logo-HotShop" />
+                        <Image src="/logo.svg" alt="logo-HotShop" />
                         <h1 className=" text-2xl">HotShop</h1>
                     </div>
 
@@ -96,7 +97,7 @@ const NavBarMobile = () => {
                             <Heart className="w-5 h-5" />
                         </Button> */}
                         <Button variant="ghost" size="sm" className="relative">
-                            <img className='p-2 bg-[#F5F2F0]' src="/bagIcon.svg" alt="bag-icon" />
+                            <Image className='p-2 bg-[#F5F2F0]' src="/bagIcon.svg" alt="bag-icon" />
                             {/* <ShoppingCart className="w-5 h-5" /> */}
                             <span className="absolute -top-1 -right-[1px] bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                                 2
@@ -178,10 +179,10 @@ const MetaNav =  () => {
         return (
             <div className="flex items-center gap-4">
                 <div className='flex items-center gap-2'>
-                    <img className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" />
-                    <img className='icon-style' src="/bagIcon.svg" alt="bag-icon" />
+                    <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" />
+                    <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" />
                 </div>
-                {/* <img src={session.img} alt="" /> */}
+                {/* <Image src={session.Image} alt="" /> */}
             </div>
         )
     }

@@ -2,20 +2,18 @@ import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   eslint: {
-    // Ignore ESLint errors during builds for generated files
-    ignoreDuringBuilds: true, // Updated to true to ignore errors during builds
-    dirs: ["src", "app", "pages", "components", "lib"], // Only lint these directories
+    ignoreDuringBuilds: true,
+    dirs: ["src", "app", "pages", "components", "lib"],
   },
   typescript: {
-    // Don't ignore TypeScript errors - we want to catch real type issues
-    ignoreBuildErrors: true, // Updated to true to ignore build errors
+    ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true, // Added to allow unoptimized images
+    unoptimized: true,
   },
-  // Optional: Add experimental features if needed
+  // Ensure Prisma generates during build
   experimental: {
-    // Add any experimental features you need
+    serverComponentsExternalPackages: ["@prisma/client", "prisma"],
   },
 }
 

@@ -6,6 +6,10 @@
   --color-primary-light: #ff8a65;
   --color-primary-soft: rgba(255, 87, 34, 0.08);
 
+  --color-bg-of-icons: #FFEEE9;
+  --color-bg-of-icons-hover: #FFCFBF;
+
+  --color-font: #0D171C;
   --color-black: #000;
   --color-dark: #212121;
   --color-body: #333;
@@ -50,10 +54,56 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+
+/* ========= Button of Checkout + Login + signUp ========= */
 .button-primary {
   background-color: var(--color-primary);
-  color: white;
+  color: #FFF;
+  background-color: var(--color-primary);
+  padding: 0.5rem 1rem;
+  width: 100%;
+  border-radius: 10px;
 }
+/* bg-(--color-primary) hover:bg-(--color-primary-hover) text-white px-4 py-2 rounded w-full */
+.button-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+.button-primary:disabled {
+  background-color: var(--color-disabled);
+  cursor: not-allowed;
+}
+/* ========= / Button of Checkout + Login + signUp / ========= */
+
+
+/* ========= input styles ========= */
+/* px-4 py-2 border-2 border-(--color-border) rounded-lg w-full mb-4 */
+.inputEnter{
+  border: 2px solid var(--color-border);
+  padding: 0.6rem;
+  border-radius: 8px;
+  width: 100%;
+}
+.inputEnter::placeholder{
+  color: var(--color-disabled);
+}
+.inputEnter:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-soft);
+}
+/* ========= / input styles / ========= */
+
+
+/* ========= icon styles ========= */
+.icon-style{
+  background-color:var(--color-bg-of-icons);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+.icon-style:hover {
+  background-color: var(--color-bg-of-icons-hover);
+}
+/* ========= / icon styles / ========= */
+
 
 .card {
   background-color: var(--color-surface);

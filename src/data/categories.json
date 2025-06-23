@@ -1,0 +1,40 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Phones",
+      "icon": "📱",
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "name": "Computers",
+      "icon": "💻",
+      "isActive": false
+    },
+    {
+      "id": 3,
+      "name": "Audio",
+      "icon": "🎧",
+      "isActive": false
+    },
+    {
+      "id": 4,
+      "name": "Wearables",
+      "icon": "⌚",
+      "isActive": false
+    },
+    {
+      "id": 5,
+      "name": "Gaming",
+      "icon": "🎮",
+      "isActive": false
+    },
+    {
+      "id": 6,
+      "name": "Camera",
+      "icon": "📷",
+      "isActive": false
+    }
+  ]
+}

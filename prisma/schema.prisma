@@ -9,3 +9,155 @@ datasource db {
   url      = env("DATABASE_URL")
   directUrl= env("DIRECT_URL")
 }
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+
+  @@map("accounts")
+}
+
+
+model User {
+  id             String    @id @default(uuid())
+  name           String?
+  email          String?   @unique 
+  emailVerified  DateTime?
+  passwordHash   String?
+  image          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  cartItems      CartItem[]
+  wishlists      Wishlist[]
+  orders         Order[]
+  reviews        Review[]
+  accounts       Account[]
+  sessions       Session[]
+
+  @@map("users")
+}
+
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  expires      DateTime
+  sessionToken String   @unique
+  accessToken  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id])
+  
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+
+  @@map("verification_token")
+}
+
+model Product {
+  id           String    @id @default(uuid())
+  title        String
+  description  String
+  price        Float
+  salePrice    Float?
+  saleStart    DateTime?
+  saleEnd      DateTime?
+  rating       Float
+  category     Category @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  cartItems    CartItem[]
+  wishlists    Wishlist[]
+  orderItems   OrderItem[]
+  reviews      Review[]
+
+  @@map("products")
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String
+  iconUrl  String?
+  products Product[]
+
+  @@map("categories")
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    String
+  productId String
+
+  @@map("wishlists")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  userId    String
+  productId String
+
+  @@map("cart_items")
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  user       User        @relation(fields: [userId], references: [id])
+  totalPrice Float
+  createdAt  DateTime    @default(now())
+  userId     String
+  orderItems OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  order           Order    @relation(fields: [orderId], references: [id])
+  product         Product  @relation(fields: [productId], references: [id])
+  quantity        Int
+  priceAtPurchase Float
+  orderId         String
+  productId       String
+
+  @@map("order_items")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  userId    String
+
+  @@map("reviews")
+}

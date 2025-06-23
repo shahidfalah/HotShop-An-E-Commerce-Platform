@@ -6,7 +6,7 @@ import Footer from "@/_components/Footer";
 import { SessionProvider } from "next-auth/react";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'], // or other subsets as needed
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {

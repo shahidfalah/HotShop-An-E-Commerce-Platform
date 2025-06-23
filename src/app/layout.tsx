@@ -3,7 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "@/styles/globals.css";
 import Header from "@/_components/Header";
 import Footer from "@/_components/Footer";
-import { SessionProvider } from "next-auth/react";
+import { Providers } from "@/_components/providers"
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -27,11 +27,11 @@ export default function RootLayout({
       <body
         className={` ${plusJakartaSans} antialiased`}
       >
-         <SessionProvider>
+         <Providers>
           <Header/>
           {children}
           <Footer />
-        </SessionProvider>
+        </Providers>
       </body>
     </html>
   );

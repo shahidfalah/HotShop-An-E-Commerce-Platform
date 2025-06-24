@@ -61,7 +61,7 @@ export default function HeroBanner() {
     <section className="relative overflow-hidden">
       <div className={`${currentBanner.bgColor} text-white transition-all duration-500`}>
         <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row items-center min-h-[400px] lg:min-h-[500px] py-8 lg:py-16">
+          <div className="flex flex-col lg:flex-row items-center min-h-[400px] lg:min-h-[500px] py-8 lg:py-16 md:px-16 px-auto">
             {/* Content */}
             <div className="flex-1 text-center lg:text-left mb-8 lg:mb-0 lg:pr-8">
               <div className="flex items-center justify-center lg:justify-start mb-4">

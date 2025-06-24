@@ -20,7 +20,7 @@ export default function BrowseByCategory() {
   }
 
   return (
-    <section className="py-12 bg-white">
+    <section id="categories" className="py-12 bg-white">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">

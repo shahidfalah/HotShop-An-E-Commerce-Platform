@@ -9,16 +9,33 @@ import { useSession } from "next-auth/react";
 
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Heart, User, Search, Menu, X } from 'lucide-react';
+import { Search, Menu, X } from 'lucide-react';
 import Link from 'next/link'
 import Image from 'next/image';
 
-const navigationLinks = [
+let navigationLinks = [
   { name: "Home", href: "/", active: true },
   { name: "Flash Sale", href: "/flash-sale", active: false },
-  { name: "Categories", href: "/categories", active: false },
-  { name: "New Arrivals", href: "#new-arrivals", active: false },
+  { name: "Categories", href: "/#categories", active: false },
+  { name: "New Arrivals", href: "/#new-arrivals", active: false },
 ]
+
+function handleChangeStyleNavLink(e) {
+    console.log("Clicked link:", e.target.innerText);
+    navigationLinks.forEach((link) => {
+        link.active = false;
+    });
+    const clickedLink = navigationLinks.find((link) => link.name === e.target.innerText);
+    if (clickedLink) {
+        clickedLink.active = true;
+        navigationLinks.forEach((link) => {
+            if (link.name === clickedLink.name) {
+                link.active = true;
+            }
+        });
+    }
+    console.log("Updated navigation links:", navigationLinks);
+}
 
 const Header = () => {
     const [browserWidth, setBrowserWidth] = React.useState(0);
@@ -57,12 +74,14 @@ const NavBarDesktop = () => {
         <nav className="text-(--color-font) flex justify-between items-center px-[40px] py-[12px] border-b border-gray-200">
             <div className="container mx-auto flex items-center gap-[32px]">
                 <div className="flex items-center space-x-2">
-                    <Image src="/logo.svg" alt="logo-HotShop" />
+                    <Image src="/logo.svg" alt="logo-HotShop" width={32} height={32}/>
                     <h1 className=" text-2xl">HotShop</h1>
                 </div>
                 <ul className="flex gap-[36px]">
+                    
                     {navigationLinks.map((link) => (
                         <a
+                            onClick={(e) => handleChangeStyleNavLink(e)}
                             key={link.name}
                             href={link.href}
                             className={`font-medium py-2 transition-colors hover:text-(--color-primary) ${
@@ -87,33 +106,25 @@ const NavBarMobile = () => {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <div className="flex items-center space-x-2">
-                        <Image src="/logo.svg" alt="logo-HotShop" />
+                        <Image src="/logo.svg" alt="logo-HotShop" width={23} height={23} />
                         <h1 className=" text-2xl">HotShop</h1>
                     </div>
 
-                    {/* Action Icons */}
+                    {/* Action Icons of Bag-icon*/}
                     <div className="flex items-center space-x-4">
-                        {/* <Button variant="ghost" size="sm" className="hidden md:flex">
-                            <Heart className="w-5 h-5" />
-                        </Button> */}
                         <Button variant="ghost" size="sm" className="relative">
-                            <Image className='p-2 bg-[#F5F2F0]' src="/bagIcon.svg" alt="bag-icon" />
-                            {/* <ShoppingCart className="w-5 h-5" /> */}
-                            <span className="absolute -top-1 -right-[1px] bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                            <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={32} height={32}/>
+                            <span className="absolute -top-1 -right-[-6px] bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                                 2
                             </span>
-                        </Button>
-                        <Button variant="ghost" size="sm" className="hidden md:flex">
-                            <User className="w-5 h-5" />
-                            <span className="ml-1 text-sm">Login/Sign Up</span>
                         </Button>
 
                         {/* Mobile Menu Button */}
                         <Button
-                        variant="ghost"
-                        size="sm"
-                        className="md:hidden"
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            variant="ghost"
+                            size="sm"
+                            className="md:hidden"
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         >
                         {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </Button>
@@ -127,9 +138,9 @@ const NavBarMobile = () => {
                         {/* Mobile Search */}
                         <div className="relative">
                             <Input
-                            type="text"
-                            placeholder="Search..."
-                            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg"
+                                type="text"
+                                placeholder="Search..."
+                                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg bg-(--color-background)"
                             />
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         </div>
@@ -137,29 +148,20 @@ const NavBarMobile = () => {
                         {/* Mobile Navigation */}
                         <nav className="flex flex-col space-y-2">
                             {navigationLinks.map((link) => (
-                            <a
-                                key={link.name}
-                                href={link.href}
-                                className={`text-sm font-medium py-2 transition-colors hover:text-red-500 ${
-                                link.active ? "text-red-500" : "text-gray-700"
-                                }`}
-                            >
-                                {link.name}
-                            </a>
+                                <a
+                                    key={link.name}
+                                    href={link.href}
+                                    className={`text-sm font-medium py-2 transition-colors hover:text-(--color-primary) ${
+                                    link.active ? "text-(--color-primary)" : "text-(--color-font)"
+                                    }`}
+                                    onClick={(e) => handleChangeStyleNavLink(e)}
+                                >
+                                    {link.name}
+                                </a>
                             ))}
                         </nav>
 
                         {/* Mobile Actions */}
-                        {/* <div className="flex items-center space-x-4 pt-2">
-                            <Button variant="ghost" size="sm">
-                            <Heart className="w-5 h-5 mr-2" />
-                            Wishlist
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                            <User className="w-5 h-5 mr-2" />
-                            Login
-                            </Button>
-                        </div> */}
                         <MetaNav />
                     </div>
                 </div>
@@ -171,22 +173,25 @@ const NavBarMobile = () => {
 
 const MetaNav =  () => {
     const { data: session, status } = useSession();
+    console.log("Session Data:", session);
+    const profileImage = session?.user.image || "/defaultProfileImage.jpeg"; // Fallback image if no profile image is available
     if (status=== "unauthenticated" || status === "loading") {
         return (
-            <Link href="/login" className="text-(--color-primary) hover:text-(--color-primary-hover) font-bold border-2 border-(--color-primary) hover:border-(--color-primary-hover) px-[16px] py-[8px] rounded-[8px]">Login/SignUP</Link>
+            <Link href="/login" className="text-(--color-primary) hover:text-(--color-primary-hover) font-bold text-center border-2 border-(--color-primary) hover:border-(--color-primary-hover) px-[16px] py-[8px] rounded-[8px]">Login/SignUP</Link>
         );
     } else if (status=== "authenticated") {
         return (
             <div className="flex items-center gap-4">
                 <div className='flex items-center gap-2'>
-                    <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" />
-                    <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" />
+                    <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={32} height={32}/>
+                    <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={32} height={32}/>
                 </div>
-                {/* <Image src={session.Image} alt="" /> */}
+                <Link href="/profile">
+                    <Image className="ml-2 rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" src={profileImage} alt="profile-image" width={32} height={32}/>
+                </Link>
             </div>
         )
     }
 }
-
 
 export default Header;

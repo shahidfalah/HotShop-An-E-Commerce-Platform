@@ -30,7 +30,7 @@ export default async function LoginPage() {
           </div>
 
         </div>
-        <Image  className="h-full m-0 w-[50%] hidden md:block" src="/authImage1.png" alt="image-auth" />
+        <Image  className="h-full m-0 w-[50%] hidden md:block" src="/authImage1.png" alt="image-auth" width={100} height={100}/>
       </div>
 
     </main>

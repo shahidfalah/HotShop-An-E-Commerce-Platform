@@ -5,7 +5,7 @@ import { NextResponse, NextRequest } from 'next/server'
 export default withAuth(async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
     const isAuth= await getToken({ req: request });
-    const protectedRoute = ["/checkout", "/payment", "/account", "products"];
+    const protectedRoute = ["/checkout", "/payment", "/account", "products","/flash-sale"];
     // const isAuthRoute = pathname.startsWith("/auth/signup"); //,"/auth/login"
     const isProtectedRoute = protectedRoute.some(route => 
       pathname.startsWith(route)
@@ -32,5 +32,6 @@ export const config = {
     "/payment",
     "/account/:path*", 
     "products/:path*",
+    "/flash-sale"
 ],
 };

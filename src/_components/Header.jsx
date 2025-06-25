@@ -186,7 +186,7 @@ const MetaNav =  () => {
                     <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={32} height={32}/>
                     <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={32} height={32}/>
                 </div>
-                <Link href="/profile">
+                <Link href="/account">
                     <Image className="ml-2 rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" src={profileImage} alt="profile-image" width={32} height={32}/>
                 </Link>
             </div>

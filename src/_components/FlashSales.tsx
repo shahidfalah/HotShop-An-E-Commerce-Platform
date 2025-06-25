@@ -1,34 +1,34 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useEffect } from "react"
+import { ChevronLeft, ChevronRight, PackageSearch } from "lucide-react"
 import ProductCard from "./ProductCard"
 import { Button } from "@/_components/ui/button"
 import productsData from "../data/products.json"
 
 export default function FlashSales() {
-  const [timeLeft, setTimeLeft] = useState({
-    days: 3,
-    hours: 23,
-    minutes: 19,
-    seconds: 56,
-  })
+  // const [timeLeft, setTimeLeft] = useState({
+  //   days: 3,
+  //   hours: 23,
+  //   minutes: 19,
+  //   seconds: 56,
+  // })
 
   // Countdown timer logic
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 }
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 }
-        } else if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 }
-        } else if (prev.days > 0) {
-          return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 }
-        }
-        return prev
-      })
+      // setTimeLeft((prev) => {
+      //   if (prev.seconds > 0) {
+      //     return { ...prev, seconds: prev.seconds - 1 }
+      //   } else if (prev.minutes > 0) {
+      //     return { ...prev, minutes: prev.minutes - 1, seconds: 59 }
+      //   } else if (prev.hours > 0) {
+      //     return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 }
+      //   } else if (prev.days > 0) {
+      //     return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 }
+      //   }
+      //   return prev
+      // })
     }, 1000)
 
     return () => clearInterval(timer)
@@ -46,15 +46,20 @@ export default function FlashSales() {
   }
 
   return (
-    <section className="py-12 bg-white">
+    <section className="py-12 bg-white px-[88px]">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="w-5 h-10 bg-red-500 rounded"></div>
+
+          <div className="flex items-center space-x-4 px-4">
+
+            <div className="w-10 h-12 bg-(--color-primary) rounded flex items-center justify-center">
+              <PackageSearch className="w-6 h-6 text-(--color-background)" />
+            </div>
+
             <div>
               <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">Flash Sales</h2>
-              <div className="flex items-center space-x-4 mt-2">
+              {/* <div className="flex items-center space-x-4 mt-2">
                 <span className="text-sm text-gray-600">Ends in:</span>
                 <div className="flex items-center space-x-2">
                   <div className="bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold min-w-[40px] text-center">
@@ -73,8 +78,9 @@ export default function FlashSales() {
                     {String(timeLeft.seconds).padStart(2, "0")}
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
+
           </div>
 
           {/* Navigation Arrows */}
@@ -102,7 +108,7 @@ export default function FlashSales() {
         <div className="relative">
           <div
             id="flash-sales-container"
-            className="flex space-x-6 overflow-x-auto scrollbar-hide pb-4"
+            className="flex gap-4 overflow-x-auto scrollbar-hide pb-4"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {productsData.flashSales.map((product) => (
@@ -115,7 +121,7 @@ export default function FlashSales() {
 
         {/* View All Button */}
         <div className="text-center mt-8">
-          <Button className="bg-red-500 hover:bg-red-600 text-white px-8 py-3" size="lg">
+          <Button className="bg-(--color-primary) hover:bg-(--color-primary-hover) text-white px-8 py-3" size="lg">
             View All Products
           </Button>
         </div>

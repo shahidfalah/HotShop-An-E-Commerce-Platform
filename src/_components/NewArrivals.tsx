@@ -1,3 +1,4 @@
+import { SprayCan } from "lucide-react"
 import { Button } from "@/_components/ui/button"
 import Image from "next/image"
 import productsData from "../data/products.json"
@@ -6,11 +7,13 @@ export default function NewArrivals() {
   const [mainProduct, ...otherProducts] = productsData.newArrivals
 
   return (
-    <section id="new-arrivals" className="py-12 bg-white">
+    <section id="new-arrivals" className="py-12 bg-white px-[88px]">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="flex items-center space-x-4 mb-8">
-          <div className="w-5 h-10 bg-red-500 rounded"></div>
+            <div className="w-10 h-12 bg-(--color-primary) rounded flex items-center justify-center">
+              <SprayCan className="w-6 h-6 text-(--color-background)" />
+            </div>
           <div>
             <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">New Arrivals</h2>
             <p className="text-gray-600 mt-1">Latest products just for you</p>

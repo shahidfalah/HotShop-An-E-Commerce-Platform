@@ -40,7 +40,7 @@ export default function CategoryBanner() {
             {/* Content */}
             <div className="flex-1 text-white p-8 lg:p-12">
               <div className="mb-4">
-                <span className="text-green-400 text-sm font-semibold">Categories</span>
+                <span className="text-[#F39C12] text-sm font-semibold">Categories</span>
               </div>
 
               <h2 className="text-3xl lg:text-4xl xl:text-5xl font-bold mb-6 leading-tight">
@@ -77,7 +77,7 @@ export default function CategoryBanner() {
                 </div>
               </div>
 
-              <Button className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 text-lg font-semibold" size="lg">
+              <Button className="bg-[#F39C12] hover:bg-[#CA820F] text-white px-8 py-3 text-lg font-semibold" size="lg">
                 Buy Now!
               </Button>
             </div>

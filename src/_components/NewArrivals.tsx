@@ -7,7 +7,7 @@ export default function NewArrivals() {
   const [mainProduct, ...otherProducts] = productsData.newArrivals
 
   return (
-    <section id="new-arrivals" className="py-12 bg-white px-[88px]">
+    <section id="new-arrivals" className="py-12 bg-white px-[16px] md:px-[88px]">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="flex items-center space-x-4 mb-8">

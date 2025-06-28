@@ -46,7 +46,7 @@ export default function FlashSales() {
   }
 
   return (
-    <section className="py-12 bg-white px-[88px]">
+    <section className="py-12 bg-white px-[16px] md:px-[88px]">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">

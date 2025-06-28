@@ -2,11 +2,9 @@
 
 import React from 'react';
 
-import { useEffect } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useSession } from "next-auth/react";
-
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Search, Menu, X } from 'lucide-react';
@@ -14,10 +12,11 @@ import Link from 'next/link'
 import Image from 'next/image';
 
 let navigationLinks = [
-  { name: "Home", href: "/", active: true },
-  { name: "Flash Sale", href: "/flash-sale", active: false },
-  { name: "Categories", href: "/#categories", active: false },
-  { name: "New Arrivals", href: "/#new-arrivals", active: false },
+  { name: "Home", href: "/", active: true, available: true },
+  { name: "Flash Sale", href: "/flash-sale", active: false, available: true },
+  { name: "Categories", href: "/#categories", active: false, available: true },
+  { name: "New Arrivals", href: "/#new-arrivals", active: false, available: true },
+  { name: "Admin", href: "/admin", active: false, available: false },
 ]
 
 function handleChangeStyleNavLink(e) {
@@ -39,7 +38,10 @@ function handleChangeStyleNavLink(e) {
 
 const Header = () => {
     const [browserWidth, setBrowserWidth] = React.useState(0);
-    // const session = await getServerSession(authOptions);
+    const { data: session } = useSession();
+    if (session?.user.role === "ADMIN") {
+        navigationLinks[4].available = true; // Make Admin link available if user is an admin
+    }
 
     useEffect(() => {
         // Set initial width
@@ -79,18 +81,20 @@ const NavBarDesktop = () => {
                 </div>
                 <ul className="flex gap-[36px]">
                     
-                    {navigationLinks.map((link) => (
-                        <a
-                            onClick={(e) => handleChangeStyleNavLink(e)}
-                            key={link.name}
-                            href={link.href}
-                            className={`font-medium py-2 transition-colors hover:text-(--color-primary) ${
-                            link.active ? "text-(--color-primary)" : "text-(--color-font)"
-                            }`}
-                        >
-                            {link.name}
-                        </a>
-                        ))}
+                    {navigationLinks.map((link) =>
+                        link.available && (
+                            <a
+                                onClick={(e) => handleChangeStyleNavLink(e)}
+                                key={link.name}
+                                href={link.href}
+                                className={`font-medium py-2 transition-colors hover:text-(--color-primary) ${
+                                link.active ? "text-(--color-primary)" : "text-(--color-font)"
+                                }`}
+                            >
+                                {link.name}
+                            </a>
+                        )
+                    )}
                 </ul>
             </div>
             <MetaNav/>
@@ -148,16 +152,18 @@ const NavBarMobile = () => {
                         {/* Mobile Navigation */}
                         <nav className="flex flex-col space-y-2">
                             {navigationLinks.map((link) => (
-                                <a
-                                    key={link.name}
-                                    href={link.href}
-                                    className={`text-sm font-medium py-2 transition-colors hover:text-(--color-primary) ${
-                                    link.active ? "text-(--color-primary)" : "text-(--color-font)"
-                                    }`}
-                                    onClick={(e) => handleChangeStyleNavLink(e)}
-                                >
-                                    {link.name}
-                                </a>
+                                link.available && (
+                                    <a
+                                        key={link.name}
+                                        href={link.href}
+                                        className={`text-sm font-medium py-2 transition-colors hover:text-(--color-primary) ${
+                                        link.active ? "text-(--color-primary)" : "text-(--color-font)"
+                                        }`}
+                                        onClick={(e) => handleChangeStyleNavLink(e)}
+                                    >
+                                        {link.name}
+                                    </a>
+                                )
                             ))}
                         </nav>
 
@@ -173,7 +179,7 @@ const NavBarMobile = () => {
 
 const MetaNav =  () => {
     const { data: session, status } = useSession();
-    console.log("Session Data:", session);
+    // console.log("Session Data:", session);
     const profileImage = session?.user.image || "/defaultProfileImage.jpeg"; // Fallback image if no profile image is available
     if (status=== "unauthenticated" || status === "loading") {
         return (

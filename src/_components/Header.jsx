@@ -10,68 +10,88 @@ import { Input } from './ui/input';
 import { Search, Menu, X } from 'lucide-react';
 import Link from 'next/link'
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
-let navigationLinks = [
-  { name: "Home", href: "/", active: true, available: true },
-  { name: "Flash Sale", href: "/flash-sale", active: false, available: true },
-  { name: "Categories", href: "/#categories", active: false, available: true },
-  { name: "New Arrivals", href: "/#new-arrivals", active: false, available: true },
-  { name: "Admin", href: "/admin", active: false, available: false },
-]
 
-function handleChangeStyleNavLink(e) {
-    console.log("Clicked link:", e.target.innerText);
-    navigationLinks.forEach((link) => {
-        link.active = false;
-    });
-    const clickedLink = navigationLinks.find((link) => link.name === e.target.innerText);
-    if (clickedLink) {
-        clickedLink.active = true;
-        navigationLinks.forEach((link) => {
-            if (link.name === clickedLink.name) {
-                link.active = true;
-            }
-        });
+
+const NavLinks=({name}) =>{
+    const [navigationLinks, setNavigationLinks]=useState([
+        { name: "Home", href: "/", active: false, available: true },
+        { name: "Flash Sale", href: "/flash-sale", active: false, available: true },
+        { name: "Categories", href: "/#categories", active: false, available: true },
+        { name: "New Arrivals", href: "/#new-arrivals", active: false, available: true },
+        { name: "Admin", href: "/admin", active: false, available: false },
+    ])
+ 
+    const { data: session } = useSession();
+    useEffect(() => {
+    if (session?.user?.role === "ADMIN") {
+        setNavigationLinks((prev) =>
+            prev.map((link) =>
+                link.name === "Admin" ? { ...link, available: true } : link
+            )
+        );
     }
-    console.log("Updated navigation links:", navigationLinks);
+    }, [session]);
+
+    const router = useRouter();
+
+    function handleTheChangeStyle(){
+        setNavigationLinks(
+            navigationLinks.map((nav) => ({
+                ...nav,
+                active: nav.name === name,
+            }))
+        );
+    }
+
+    useEffect(()=>{
+        console.log("before",navigationLinks)
+        handleTheChangeStyle()
+        console.log("after",navigationLinks)
+    },[])
+    
+    return (
+        navigationLinks.map((nav)=> (
+            nav.available && (
+               <Link
+                    key={nav.name}
+                    href={nav.href}
+                    className={`text-sm font-medium py-2 transition-colors hover:text-(--color-primary) ${
+                        nav.active ? "text-(--color-primary)" : "text-(--color-font)"
+                    }`}
+                    onClick={() => {
+                        setNavigationLinks(
+                        navigationLinks.map((link) => ({
+                            ...link,
+                            active: link.name === nav.name,
+                        }))
+                        );
+                    }}
+                >
+                    {nav.name}
+                </Link>
+
+            )
+        ))
+    )
 }
 
 const Header = () => {
-    const [browserWidth, setBrowserWidth] = React.useState(0);
-    const { data: session } = useSession();
-    if (session?.user.role === "ADMIN") {
-        navigationLinks[4].available = true; // Make Admin link available if user is an admin
-    }
+    return (
+        <div>
+            <div className='block md:hidden'>
+                <NavBarMobile />
+            </div>
+            <div className='hidden md:block'>
+                <NavBarDesktop />
+            </div>
+        </div>
 
-    useEffect(() => {
-        // Set initial width
-        setBrowserWidth(window.innerWidth)
-
-        // Add event listener for window resize
-        const handleResize = () => {
-            setBrowserWidth(window.innerWidth)
-        }
-
-        window.addEventListener("resize", handleResize)
-
-        // Cleanup event listener on component unmount
-        return () => {
-            window.removeEventListener("resize", handleResize)
-        }
-    }, [])
-
-    if (browserWidth < 768) {
-        return (
-            <NavBarMobile />
-        );
-    } else if (browserWidth >= 768) {
-        return (
-            <NavBarDesktop/>
-        );
-    }
+    )
 }
 
-const NavBarDesktop = () => {
+const NavBarDesktop = ()=>{
     return (
         <nav className="text-(--color-font) flex justify-between items-center px-[40px] py-[12px] border-b border-gray-200">
             <div className="container mx-auto flex items-center gap-[32px]">
@@ -80,21 +100,7 @@ const NavBarDesktop = () => {
                     <h1 className=" text-2xl">HotShop</h1>
                 </div>
                 <ul className="flex gap-[36px]">
-                    
-                    {navigationLinks.map((link) =>
-                        link.available && (
-                            <a
-                                onClick={(e) => handleChangeStyleNavLink(e)}
-                                key={link.name}
-                                href={link.href}
-                                className={`font-medium py-2 transition-colors hover:text-(--color-primary) ${
-                                link.active ? "text-(--color-primary)" : "text-(--color-font)"
-                                }`}
-                            >
-                                {link.name}
-                            </a>
-                        )
-                    )}
+                    <NavLinks name="Home"/>
                 </ul>
             </div>
             <MetaNav/>
@@ -151,20 +157,7 @@ const NavBarMobile = () => {
 
                         {/* Mobile Navigation */}
                         <nav className="flex flex-col space-y-2">
-                            {navigationLinks.map((link) => (
-                                link.available && (
-                                    <a
-                                        key={link.name}
-                                        href={link.href}
-                                        className={`text-sm font-medium py-2 transition-colors hover:text-(--color-primary) ${
-                                        link.active ? "text-(--color-primary)" : "text-(--color-font)"
-                                        }`}
-                                        onClick={(e) => handleChangeStyleNavLink(e)}
-                                    >
-                                        {link.name}
-                                    </a>
-                                )
-                            ))}
+                            <NavLinks name="Home"/>
                         </nav>
 
                         {/* Mobile Actions */}
@@ -179,7 +172,6 @@ const NavBarMobile = () => {
 
 const MetaNav =  () => {
     const { data: session, status } = useSession();
-    // console.log("Session Data:", session);
     const profileImage = session?.user.image || "/defaultProfileImage.jpeg"; // Fallback image if no profile image is available
     if (status=== "unauthenticated" || status === "loading") {
         return (
@@ -201,3 +193,156 @@ const MetaNav =  () => {
 }
 
 export default Header;
+
+// function handleChangeStyleNavLink(e,setNavigationLinks,navigationLinks){
+//     const ul= document.getElementsByTagName("ul")
+//     console.log(ul.innerText)
+//     console.log("with in handleChangeStyleNavLink",navigationLinks)
+//     console.log("Clicked link:", e.target.innerText);
+//     // navigationLinks.forEach((link) => {
+//     //     link.active = false;
+//     // });
+//     const clickedLink = navigationLinks.navigationLinks.find((link) => link.name === e.target.innerText);
+//     if (clickedLink) {
+//         clickedLink.active = true;
+        
+//         setNavigationLinks(
+//             navigationLinks.navigationLinks.map((nav)=>{
+//                 console.log("onckilck",nav)
+//                 if(nav.name===e.target.innerText){
+//                     nav.active=true
+//                 }else {
+//                     nav.active=false
+//                 }
+//             })
+
+//         )
+//     }
+//     console.log("Updated navigation links:", navigationLinks);
+// }
+
+
+        // navigationLinks.forEach((link) => {
+        //     if (link.name === clickedLink.name) {
+        //         link.active = true;
+        //     }
+        // });
+
+
+// let navigationLinks = [
+//   { name: "Home", href: "/", active: true, available: true },
+//   { name: "Flash Sale", href: "/flash-sale", active: false, available: true },
+//   { name: "Categories", href: "/#categories", active: false, available: true },
+//   { name: "New Arrivals", href: "/#new-arrivals", active: false, available: true },
+//   { name: "Admin", href: "/admin", active: false, available: false },
+// ]
+
+        // setNavigationLinks((prev) => ({
+        //     ...prev,
+        //     [active]: false,
+        // }))
+
+        // setNavigationLinks(
+        //     navigationLinks.map((nav)=>{
+        //         console.log(nav.name)
+        //         if(nav.name===name){
+        //             nav.active=true
+        //         }else {
+        //             nav.active=false
+        //         }
+        //     })
+        // )             
+
+    // if (browserWidth < 768) {
+    //     return (
+    //         <NavBarMobile navigationLinks={navigationLinks} />
+    //     );
+    // } else if (browserWidth >= 768) {
+    //     return (
+    //         <NavBarDesktop navigationLinks={navigationLinks} setNavigationLinks={setNavigationLinks} />
+    //     );
+    // }    
+
+    // console.log(navigationLinks.navigationLinks)
+    // for(let i of navigationLinks.navigationLinks){
+    //     console.log(i)
+    // }
+    // console.log(navigationLinks)
+    // console.log("=============================================")
+    // navigationLinks.navigationLinks.map((link)=>{ 
+    //     console.log("link",link)
+    // })
+
+
+{/*                     
+                    {navigationLinks.navigationLinks.map((link,index) => (
+                        link.available && (
+                            <a
+                                id={index}
+                                key={link.name}
+                                href={link.href}
+                                className={`text-sm font-medium py-2 transition-colors hover:text-(--color-primary) ${
+                                link.active ? "text-(--color-primary)" : "text-(--color-font)"
+                                }`}
+                                onClick={(e) => {
+                                    console.log(e)
+                                    handleChangeStyleNavLink(e,setNavigationLinks,navigationLinks)
+                                }}
+                            >
+                                {link.name}
+                            </a>
+                        )
+                    ))
+                    } */}
+
+    //     props.navigationLinks.setNavigationLinks([
+
+    //     props.navigationLinks.navigationLinks.map((nav)=>{
+    //         if(nav.name===props.name){
+    //             nav.active=true
+    //         }else (
+    //             nav.active=false
+    //         )
+    //     })]
+    // ) 
+
+
+     // let newNav = []
+    // for(let i of navigationLinks.navigationLinks){
+
+
+    //     if(i.name===name){
+    //         i.active=true
+    //     }else (
+    //         i.active=false
+    //     )
+    //     newNav.push(i)
+    // }
+    // cons
+    // console.log(props.navigationLinks.setNavigationLinks)
+    
+    // props.navigationLinks.setNavigationLinks([
+
+    //     props.navigationLinks.navigationLinks.map((nav)=>{
+    //         if(nav.name===props.name){
+    //             nav.active=true
+    //         }else (
+    //             nav.active=false
+    //         )
+    //     })]
+    // ) 
+
+// link.available && (
+                        //     <button onClick={(e) => handleChangeStyleNavLink(e)} key={link.name}
+                        //             className={`font-medium py-2 transition-colors hover:text-(--color-primary) ${
+                        //             link.active ? "text-(--color-primary)" : "text-(--color-font)"
+                        //             }`}
+                        //     >
+                        //         <a
+                        //             href={link.href}
+                        //         >
+                        //             {link.name}
+                        //         </a>
+                        //     </button>
+
+                        // )

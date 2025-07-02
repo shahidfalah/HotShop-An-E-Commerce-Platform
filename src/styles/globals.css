@@ -52,6 +52,26 @@ body {
   background: var(--color-background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  scroll-behavior: smooth;
+}
+
+/* For Webkit Browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 4px; /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-font); /* Track color */
+  /* border-radius: 10px; */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary); /* Scrollbar thumb color */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Thumb color on hover */
 }
 
 

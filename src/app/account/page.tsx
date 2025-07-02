@@ -3,14 +3,14 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { ShoppingBag, Heart, MessageCircle, LogOut, Star, Settings } from "lucide-react"
-
 import { useSession } from "next-auth/react";
 
-import ProfileInfo from "../../_components/account/ProfileInfo"
-import AccountItem from "../../_components/account/AccountItem"
-import AccountSection from "../../_components/account/AccountSection"
-import AccountStats from "../../_components/account/AccountStats"
+import { ShoppingBag, Heart, MessageCircle, LogOut, Star, Settings } from "lucide-react"
+
+import ProfileInfo from "@/_components/account/ProfileInfo"
+import AccountItem from "@/_components/account/AccountItem"
+import AccountSection from "@/_components/account/AccountSection"
+import AccountStats from "@/_components/account/AccountStats"
 
 // Mock data - replace with your actual data fetching
 let mockUser = {
@@ -32,7 +32,7 @@ export default function AccountPage() {
     name: session?.user?.name || "John Doe",
     email: session?.user?.email as string,
     image: session?.user?.image || "/defaultProfileImage.jpeg",
-    role: "customer",
+    role: session?.user?.role,
   }
 
   const router = useRouter()
@@ -54,6 +54,7 @@ export default function AccountPage() {
 
   return (
     <main className="min-h-screen bg-(--color-background) text-(--color-font)">
+      
       {/* Mobile Layout */}
       <div className="lg:hidden">
         <div className="px-4 py-6">

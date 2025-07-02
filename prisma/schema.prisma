@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -7,23 +6,23 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url        = env("DATABASE_URL")
   directUrl= env("DIRECT_URL")
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  id                  String  @id @default(cuid())
+  userId              String
+  type                String
+  provider            String
+  providerAccountId   String
+  refresh_token       String?
+  access_token        String?
+  expires_at          Int?
+  token_type          String?
+  scope               String?
+  id_token            String?
+  session_state       String?
 
   user User @relation(fields: [userId], references: [id])
 
@@ -38,25 +37,47 @@ enum Role {
   EDITOR
 }
 
-model User {
-  id             String    @id @default(uuid())
-  name           String?
-  email          String?   @unique 
-  emailVerified  DateTime?
-  passwordHash   String?
-  image          String?
-  role           Role      @default(USER)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  
-  cartItems      CartItem[]
-  wishlists      Wishlist[]
-  orders         Order[]
-  reviews        Review[]
-  accounts       Account[]
-  sessions       Session[]
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
 
-  createdProducts Product[] @relation("CreatedProducts")
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentType {
+  CREDIT_CARD
+  PAYPAL
+  CASH_ON_DELIVERY
+}
+
+model User {
+  id              String       @id @default(uuid())
+  name            String?
+  email           String?      @unique
+  emailVerified   DateTime?
+  passwordHash    String?
+  image           String?
+  role            Role         @default(USER)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  cartItems       CartItem[]
+  wishlists       Wishlist[]
+  orders          Order[]
+  reviews         Review[]
+  accounts        Account[]
+  sessions        Session[]
+  addresses       Address[]     // New: User can have multiple addresses
+
+  createdProducts Product[]    @relation("CreatedProducts")
   createdCategories Category[] @relation("CreatedCategories")
 
   @@map("users")
@@ -64,16 +85,16 @@ model User {
 
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
   expires      DateTime
-  sessionToken String   @unique
+  sessionToken String    @unique
   accessToken  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  user         User     @relation(fields: [userId], references: [id])
-  
+  user         User      @relation(fields: [userId], references: [id])
+
   @@map("sessions")
 }
 
@@ -97,7 +118,7 @@ model Category {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   createdById String
-  
+
   products    Product[]
   createdBy   User      @relation("CreatedCategories", fields: [createdById], references: [id])
 
@@ -105,23 +126,29 @@ model Category {
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  description String?
-  price       Decimal  @db.Decimal(10, 2)
-  salePrice   Decimal? @db.Decimal(10, 2)
-  saleStart   DateTime?
-  saleEnd     DateTime?
-  images      String[]
-  brand       String?
-  width       String?
-  height      String?
-  stock       Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdById String
+  id                 String    @id @default(cuid())
+  title              String
+  slug               String    @unique
+  description        String?
+  price              Decimal   @db.Decimal(10, 2)
+  salePrice          Decimal?  @db.Decimal(10, 2)
+  saleStart          DateTime?
+  saleEnd            DateTime?
+  // New fields for flash sale
+  isFlashSale        Boolean   @default(false) // Indicate if product is part of an active flash sale
+  itemsSold          Int       @default(0)     // Number of items sold in this flash sale (can be used for 'Only' display)
+  itemLimit          Int?      // Total items available for the flash sale
+  discountPercentage Int?      // New: To store discount percentage directly
+
+  images             String[]
+  brand              String?
+  width              String?
+  height             String?
+  stock              Int       @default(0)
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  createdById        String
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
@@ -142,9 +169,9 @@ model CartItem {
   updatedAt DateTime @updatedAt
 
   userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@map("cart_items")
@@ -155,9 +182,9 @@ model Wishlist {
   createdAt DateTime @default(now())
 
   userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@map("wishlists")
@@ -171,33 +198,109 @@ model Review {
   updatedAt DateTime @updatedAt
 
   userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@map("reviews")
 }
+model Address {
+  id        String   @id @default(cuid())
+  userId    String   // Foreign key to User
+  fullName  String
+  email     String
+  address1  String
+  address2  String?
+  city      String
+  state     String
+  zipCode   String?
+  country   String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // The 'originalAddress' relation in OrderAddress will link back here if needed.
+  orderAddresses OrderAddress[] @relation("OrderAddressToOriginalAddress")
+
+  @@map("addresses")
+}
 
 model Order {
-  id          String      @id @default(cuid())
-  total       Decimal     @db.Decimal(10, 2)
-  status      OrderStatus @default(PENDING)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id              String      @id @default(cuid())
+  total           Decimal     @db.Decimal(10, 2)
+  status          OrderStatus @default(PENDING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  orderItems OrderItem[]
+  orderItems      OrderItem[]
+  payment         Payment? // One-to-one relation
+
+  // Explicitly define two separate fields for shipping and billing addresses
+  shippingAddressId String?     @unique // New: Link to Shipping OrderAddress
+  shippingAddress   OrderAddress? @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
+
+  billingAddressId  String?     @unique // New: Link to Billing OrderAddress
+  billingAddress    OrderAddress? @relation("OrderBillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
 
   @@map("orders")
 }
 
+// OrderAddress now holds a snapshot of an address for an order.
+// Each OrderAddress record is created when an order is placed.
+model OrderAddress {
+  id           String    @id @default(cuid())
+  // No direct orderId here, as it's linked via shippingAddressId/billingAddressId in Order
+  // An OrderAddress record is unique for either shipping or billing on a given order.
+
+  // Snapshot of address details
+  fullName     String
+  email        String
+  address1     String
+  address2     String?
+  city         String
+  state        String
+  zipCode      String?
+  country      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Link back to the original saved address (optional, but good for tracking)
+  originalAddressId String?
+  originalAddress Address? @relation("OrderAddressToOriginalAddress", fields: [originalAddressId], references: [id], onDelete: SetNull)
+
+  // Relations from Order to this OrderAddress
+  // A single OrderAddress instance can be a shipping address for one order OR a billing address for another.
+  // It's effectively a historical snapshot.
+  orderAsShipping Order? @relation("OrderShippingAddress")
+  orderAsBilling  Order? @relation("OrderBillingAddress")
+
+  @@map("order_addresses")
+}
+
+model Payment {
+  id            String       @id @default(cuid())
+  orderId       String       @unique // One-to-one with Order
+  paymentType   PaymentType
+  status        PaymentStatus @default(PENDING)
+  transactionId String?      // e.g., Stripe charge ID, PayPal transaction ID
+  amount        Decimal      @db.Decimal(10, 2) // Should match order.total
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
 model OrderItem {
-  id       String  @id @default(cuid())
-  quantity Int
-  price    Decimal @db.Decimal(10, 2)
+  id        String  @id @default(cuid())
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2) // Price at the time of order
 
   orderId   String
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -205,12 +308,4 @@ model OrderItem {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
-}
-
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
 }

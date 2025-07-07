@@ -184,14 +184,16 @@ export default function ProductsPage() { // Renamed to ProductsPage
       )}
 
       {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-end">
         {products.map((product) => (
           <div key={product.id} className="flex-none">
             <ProductCard
               product={{
                 ...product,
+                width: product.width !== null && product.width !== undefined ? Number(product.width) : undefined,
+                height: product.height !== null && product.height !== undefined ? Number(product.height) : undefined,
               }}
-              showTimer={product.isFlashSale && (product.timeLeftMs ?? 0) > 0} // Only show timer if it's a flash sale AND time is left
+              showTimer={(product.timeLeftMs ?? 0) > 0} // Only show timer if it's a flash sale AND time is left
             />
           </div>
         ))}

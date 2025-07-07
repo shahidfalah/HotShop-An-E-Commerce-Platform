@@ -28,8 +28,8 @@ export interface Product { // Export Product interface as it will be used by par
   discountPercentage: number | null; // Expecting this from the API now
   images: string[]; // This array should now contain full public URLs
   brand: string | null;
-  width: string | null;
-  height: string | null;
+  width: number | null;
+  height: number | null;
   stock: number;
   isActive: boolean;
   createdAt: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSession } from "next-auth/react";
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -96,6 +96,32 @@ const NavBarMobile = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { status } = useSession();
     const isAuthenticated = status === "authenticated";
+    const [cartItemCount, setCartItemCount] = useState(0); // State for mobile cart count
+
+    const fetchCartCount = useCallback(async () => {
+        if (isAuthenticated) {
+            try {
+                const response = await fetch("/api/cart");
+                if (response.ok) {
+                    const items = await response.json();
+                    const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
+                    setCartItemCount(totalCount);
+                } else {
+                    console.error("Failed to fetch mobile cart count:", response.statusText);
+                    setCartItemCount(0);
+                }
+            } catch (error) {
+                console.error("Error fetching mobile cart count:", error);
+                setCartItemCount(0);
+            }
+        } else {
+            setCartItemCount(0);
+        }
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        fetchCartCount();
+    }, [fetchCartCount]);
     
     return (
         <div className="bg-white text-(--color-font) border-b border-gray-200 sticky top-0 z-50 border-b border-gray-200">
@@ -117,10 +143,10 @@ const NavBarMobile = () => {
                                         2
                                     </span>
                                 </Link>
-                                <Link className="relative" href="/account">
+                                <Link className="relative" href="/cart">
                                     <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={32} height={32}/>
                                     <span className="absolute -top-1 -right-[4px] bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                                        2
+                                        {cartItemCount}
                                     </span>
                                 </Link>
                             </div>
@@ -159,6 +185,34 @@ const MetaNav = () => {
     const { data: session, status } = useSession();
     const profileImage = session?.user.image || "/defaultProfileImage.jpeg";
     const userName = session?.user.name || "no-name";
+    const isAuthenticated = status === "authenticated";
+    const [cartItemCount, setCartItemCount] = useState(0); // State for mobile cart count
+
+    const fetchCartCount = useCallback(async () => {
+        if (isAuthenticated) {
+            try {
+                const response = await fetch("/api/cart");
+                if (response.ok) {
+                    const items = await response.json();
+                    console.log("Cart items:", items)
+                    const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
+                    setCartItemCount(totalCount);
+                } else {
+                    console.error("Failed to fetch mobile cart count:", response.statusText);
+                    setCartItemCount(0);
+                }
+            } catch (error) {
+                console.error("Error fetching mobile cart count:", error);
+                setCartItemCount(0);
+            }
+        } else {
+            setCartItemCount(0);
+        }
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        fetchCartCount();
+    }, [fetchCartCount]);
 
     if (status === "unauthenticated" || status === "loading") {
         return (
@@ -178,8 +232,11 @@ const MetaNav = () => {
                         <Link href="/account">
                             <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={40} height={40}/>
                         </Link>
-                        <Link href="/account">
+                        <Link className="relative" href="/cart">
                             <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={40} height={40}/>
+                            <span className="absolute -top-1 -right-[4px] bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                                {cartItemCount}
+                            </span>
                         </Link>
                     </div>
                     <Link href="/account">

@@ -1,23 +1,42 @@
-"use client"
+// src/_components/BrowseByCategory.tsx
+"use client";
 
-import { useState } from "react"
-import { ChevronLeft, ChevronRight, FolderKanban } from "lucide-react"
-import { Button } from "@/_components/ui/button"
-import categoriesData from "../data/categories.json"
+import React, { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, FolderKanban } from "lucide-react";
+import * as LucideIcons from "lucide-react"; // Import all Lucide icons
+import { type LucideProps } from "lucide-react"; // Import LucideProps for typing
+import { Button } from "@/_components/ui/button";
+import Link from "next/link"; // For linking to category pages
 
-export default function BrowseByCategory() {
-  const [activeCategory, setActiveCategory] = useState(1)
+// Define the Category interface (consistent with your API response)
+export interface Category {
+  id: string;
+  title: string;
+  slug: string;
+  icon?: string; // Lucide icon name as a string
+}
+
+export default function BrowseByCategory({ initialCategories }: { initialCategories: Category[] }) {
+  const [categories] = useState<Category[]>(initialCategories);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null); // Use category ID or slug for active state
+
+  // Effect to set the first category as active initially if available
+  useEffect(() => {
+    if (initialCategories.length > 0 && activeCategory === null) {
+      setActiveCategory(initialCategories[0].id);
+    }
+  }, [initialCategories, activeCategory]);
 
   const scrollContainer = (direction: "left" | "right") => {
-    const container = document.getElementById("categories-container")
+    const container = document.getElementById("categories-container");
     if (container) {
-      const scrollAmount = 200
+      const scrollAmount = 200;
       container.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
-      })
+      });
     }
-  }
+  };
 
   return (
     <section id="categories" className="py-12 bg-white px-[16px] md:px-[88px]">
@@ -25,7 +44,6 @@ export default function BrowseByCategory() {
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
-            {/* <div className="w-5 h-10 bg-(--color-primary) rounded"></div> */}
             <div className="w-10 h-12 bg-(--color-primary) rounded flex items-center justify-center">
               <FolderKanban className="w-6 h-6 text-(--color-background)" />
             </div>
@@ -55,30 +73,46 @@ export default function BrowseByCategory() {
 
         {/* Categories */}
         <div className="relative">
-          <div
-            id="categories-container"
-            className="flex space-x-6 overflow-x-auto scrollbar-hide px-4 py-4"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {categoriesData.categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={`flex-none w-32 h-32 rounded-lg border-2 transition-all duration-300 hover:scale-105 ${
-                  activeCategory === category.id
-                    ? "border-(--color-primary) bg-(--color-primary) text-white shadow-lg"
-                    : "border-gray-200 bg-white text-gray-700 hover:border-red-300"
-                }`}
-              >
-                <div className="flex flex-col items-center justify-center h-full space-y-2">
-                  <span className="text-3xl">{category.icon}</span>
-                  <span className="text-sm font-medium">{category.name}</span>
-                </div>
-              </button>
-            ))}
-          </div>
+          {categories.length === 0 ? (
+            <p className="text-center text-gray-500 py-4">No categories found.</p>
+          ) : (
+            <div
+              id="categories-container"
+              className="flex space-x-6 overflow-x-auto scrollbar-hide px-4 py-4"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {categories.map((category) => {
+                // Dynamically get the Lucide icon component
+                const IconComponent = category.icon
+                  ? (LucideIcons[category.icon as keyof typeof LucideIcons] as React.ElementType<LucideProps>)
+                  : null;
+
+                return (
+                  <Link href={`/categories/${category.slug}`} key={category.id}>
+                    <button
+                      onClick={() => setActiveCategory(category.id)}
+                      className={`flex-none w-32 h-32 rounded-lg border-2 transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center space-y-2
+                        ${activeCategory === category.id
+                          ? "border-(--color-primary) bg-(--color-primary) text-white shadow-lg"
+                          : "border-gray-200 bg-white text-gray-700 hover:border-(--color-primary) hover:text-(--color-primary)" // Adjusted hover color
+                        }`}
+                    >
+                      <span className="text-3xl">
+                        {IconComponent ? (
+                          <IconComponent size={36} /> // Increased icon size for prominence
+                        ) : (
+                          "📦" // Fallback emoji
+                        )}
+                      </span>
+                      <span className="text-sm font-medium">{category.title}</span> {/* Use category.title */}
+                    </button>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </section>
-  )
+  );
 }

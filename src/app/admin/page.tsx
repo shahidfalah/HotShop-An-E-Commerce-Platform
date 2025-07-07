@@ -1,28 +1,53 @@
-import { requireAdminPage } from "@/lib/admin"
-import AdminLayout from "@/_components/admin/AdminLayout"
-import AdminCategoryForm from "@/_components/admin/AdminCategoryForm"
-import AdminProductForm from "@/_components/admin/AdminProductForm"
+// src/app/admin/page.tsx
+import { requireAdminPage } from "@/lib/admin";
+import AdminLayout from "@/_components/admin/AdminLayout";
+import AdminDashboard from "@/_components/admin/AdminDashboard";
+
+// Define the interface for the stats data expected from the API
+interface AdminStats {
+  products: { total: number; change: number };
+  categories: { total: number; change: number };
+  users: { total: number; change: number };
+  reviews: { total: number; avgRating: number };
+  orders: { total: number; revenue: number };
+}
+
+// Function to fetch admin statistics on the server
+async function getAdminStats(): Promise<AdminStats | null> {
+  try {
+    // Ensure NEXTAUTH_URL is correctly set in your .env.local and deployment environment
+    const url = `${process.env.NEXTAUTH_URL}/api/admin/stats`;
+    const res = await fetch(url, {
+      cache: 'no-store', // Always fetch fresh data for admin dashboard
+      next: { revalidate: 60 } // Revalidate every minute
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("Server-side fetch error for admin stats:", errorData.error);
+      return null;
+    }
+
+    const result = await res.json();
+    if (result.success && result.data) {
+      return result.data;
+    }
+    return null;
+  } catch (error) {
+    console.error("Failed to fetch admin stats server-side:", error);
+    return null;
+  }
+}
 
 export default async function AdminPage() {
-    await requireAdminPage()
+  await requireAdminPage(); // Ensure user is admin
 
-    return (
-        <AdminLayout>
-            <div className="space-y-8">
-                <div>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h2>
-                    <p className="text-gray-600">Manage your store categories and products</p>
-                </div>
+  const stats = await getAdminStats(); // Fetch the stats
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                        <AdminCategoryForm />
-                    </div>
-                    <div>
-                        <AdminProductForm />
-                    </div>
-                </div>
-            </div>
-        </AdminLayout>
-    )
+  return (
+    <AdminLayout>
+      {/* Pass the fetched stats to the AdminDashboard client component */}
+      <AdminDashboard initialStats={stats} />
+    </AdminLayout>
+  );
 }

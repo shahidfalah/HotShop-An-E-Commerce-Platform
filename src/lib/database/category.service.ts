@@ -361,4 +361,13 @@ export class CategoryService {
         throw new Error("Failed to fetch category analytics")
         }
     }
+
+    
+    /**
+     * Counts all categories in the database.
+     * @returns The total count of categories.
+     */
+    static async countAllCategories(): Promise<number> {
+        return await prisma.category.count();
+    }
 }

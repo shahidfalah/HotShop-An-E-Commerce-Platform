@@ -102,7 +102,7 @@ export default function AdminCategoryForm() {
   : null;
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Add New Category</CardTitle>
       </CardHeader>

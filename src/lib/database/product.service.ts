@@ -149,20 +149,28 @@ export class ProductService {
    * @param limit The maximum number of products to return.
    * @returns An array of latest products.
    */
-  static async findLatestProducts(limit: number = 4) {
+  static async findLatestProducts(limit: number = 8) { // CHANGED: Default limit to 8
     return await prisma.product.findMany({
       where: {
         isActive: true,
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { stock: "desc" }, // CHANGED: Order by stock from greatest to smallest
       take: limit,
       include: {
-        category: { select: { title: true } },
+        category: { select: { title: true, slug: true, id: true } }, // Include slug and id for category
         _count: {
           select: { reviews: true, wishlists: true }
         }
       }
     });
+  }
+
+  /**
+   * Counts all categories in the database.
+   * @returns The total count of categories.
+   */
+  static async countAllProducts(): Promise<number> {
+    return await prisma.product.count();
   }
 
   // You can keep `findAll` if you need a truly unfiltered list for admin purposes,

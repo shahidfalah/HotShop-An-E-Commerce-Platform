@@ -1,5 +1,5 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 // src/_components/ProductCard.tsx
+/* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
 "use client";
@@ -19,7 +19,7 @@ interface ProductCardProps {
     slug: string;
     price: number;
     salePrice?: number | null;
-    images: string[];
+    images: string[]; // Now expected to contain full public URLs
     discountPercentage?: number | null;
     timeLeftMs?: number | null;
     rating?: number | null;
@@ -45,7 +45,7 @@ const formatTime = (ms: number) => {
 // Timer Badge Component
 const TimerBadge = ({ timeLeftMs }: { timeLeftMs: number }) => {
   const [displayTime, setDisplayTime] = useState(() => formatTime(timeLeftMs));
-  const remainingTimeRef = useRef(timeLeftMs); // Move useRef to component level
+  const remainingTimeRef = useRef(timeLeftMs);
 
   useEffect(() => {
     if (timeLeftMs <= 0) return;
@@ -135,40 +135,20 @@ const ProductImage = ({
   variant: string;
   isHovered: boolean;
 }) => {
-  const [publicURL, setPublicURL] = useState<string | undefined>(undefined);
-  const [bgColor, setBgColor] = useState<string>("rgb(243, 244, 246)");
-  const imgRef = useRef<HTMLImageElement>(null); // Move useRef to component level
+  // publicURL state and fetchImageUrl logic are removed.
+  // The image source will now come directly from product.images[0]
+  const [bgColor, setBgColor] = useState<string>("rgb(243, 244, 246)"); // Default light gray background
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  const fetchImageUrl = useCallback(async (imageName: string): Promise<string> => {
-    try {
-      const res = await fetch(`/api/images/${imageName}`);
-      const data = await res.json();
-      return data.url;
-    } catch (error) {
-      console.error("Failed to fetch image URL:", error);
-      return "/placeholder.svg";
-    }
-  }, []);
-
-  useEffect(() => {
-    const getImageUrl = async () => {
-      if (product.images && product.images.length > 0) {
-        const url = await fetchImageUrl(product.images[0]);
-        setPublicURL(url);
-      } else {
-        setPublicURL("/placeholder.svg");
-      }
-    };
-
-    getImageUrl();
-  }, [product.images, fetchImageUrl]);
-
-  const handleImageLoad = useCallback(async () => {
-    if (imgRef.current && publicURL && typeof window !== 'undefined' && typeof ColorThief !== 'undefined') {
+  const handleImageLoad = useCallback(() => {
+    // Ensure imgRef.current is an HTMLImageElement and ColorThief is available
+    if (imgRef.current && typeof window !== 'undefined' && typeof ColorThief !== 'undefined') {
       try {
+        // Create a temporary image element to avoid CORS issues with ColorThief if the image is from a different origin
+        // This is important if your Supabase images are on a different domain than your app.
         const tempImg = new window.Image();
-        tempImg.crossOrigin = 'Anonymous';
-        tempImg.src = publicURL;
+        tempImg.crossOrigin = 'Anonymous'; // Required for ColorThief on external images
+        tempImg.src = imgRef.current.src; // Use the src from the actual Image component
 
         tempImg.onload = () => {
           try {
@@ -177,20 +157,29 @@ const ProductImage = ({
             setBgColor(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
           } catch (err) {
             console.error("Color extraction failed:", err);
-            setBgColor("rgb(243, 244, 246)");
+            setBgColor("rgb(243, 244, 246)"); // Fallback on error
           }
         };
 
         tempImg.onerror = () => {
-          console.warn("Failed to load image for color extraction");
-          setBgColor("rgb(243, 244, 246)");
+          console.warn("Failed to load image for color extraction (tempImg).");
+          setBgColor("rgb(243, 244, 246)"); // Fallback on error
         };
+
       } catch (err) {
         console.error("Color extraction setup failed:", err);
-        setBgColor("rgb(243, 244, 246)");
+        setBgColor("rgb(243, 244, 246)"); // Fallback on error
       }
+    } else if (typeof ColorThief === 'undefined') {
+      console.warn("ColorThief not loaded. Ensure the script is included in layout.tsx.");
+      setBgColor("rgb(243, 244, 246)"); // Fallback if ColorThief is missing
     }
-  }, [publicURL]);
+  }, []);
+
+  // Determine the image source. It should now be a full URL from the product prop.
+  const imageUrl = (product.images && product.images.length > 0)
+    ? product.images[0]
+    : "/placeholder.svg"; // Fallback to a local placeholder if no image URL is provided
 
   return (
     <div
@@ -203,10 +192,16 @@ const ProductImage = ({
         width={variant === "large" ? 250 : 200}
         height={variant === "large" ? 250 : 200}
         ref={imgRef}
-        src={publicURL || "/placeholder.svg"}
+        src={imageUrl} // Directly use the URL from   props
         alt={product.title || "Product image"}
-        onLoad={handleImageLoad}
-        onError={() => setPublicURL("/placeholder.svg")}
+        onLoad={handleImageLoad} // Trigger color extraction on load
+        onError={() => {
+          // Fallback for image display if the URL itself fails to load
+          console.error("Image display failed for:", imageUrl);
+          // Optionally set a local fallback image if the provided URL fails
+          if (imgRef.current) imgRef.current.src = "/placeholder.svg";
+          setBgColor("rgb(243, 244, 246)"); // Ensure background is reset
+        }}
         className={`object-contain w-full h-full p-4 transition-transform duration-300 ${
           isHovered ? "scale-105" : "scale-100"
         }`}
@@ -299,8 +294,8 @@ const ProductContent = ({
     )}
 
     {product.itemsSold !== null && product.itemsSold !== undefined &&
-     product.itemLimit !== null && product.itemLimit !== undefined &&
-     (product.itemLimit - product.itemsSold > 0) && (
+      product.itemLimit !== null && product.itemLimit !== undefined &&
+      (product.itemLimit - product.itemsSold > 0) && (
       <div className="text-xs text-gray-600">
         Only {product.itemLimit - product.itemsSold} items left!
       </div>
@@ -351,7 +346,7 @@ export default function ProductCard({
       )}
 
       <div className="bg-white rounded-b-lg rounded-tr-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg group">
-        <Link href={`/flash-sale/${product.slug}`} className="block">
+        <Link href={`/products/${product.slug}`} className="block"> {/* Changed link to generic product page */}
           <div className="relative bg-gray-50 overflow-hidden">
             <ActionButtons
               isWishlisted={isWishlisted}

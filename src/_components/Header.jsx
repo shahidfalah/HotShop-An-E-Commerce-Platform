@@ -1,81 +1,66 @@
 "use client";
 
 import React from 'react';
-
 import { useEffect, useState } from 'react';
-
 import { useSession } from "next-auth/react";
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Search, Menu, X } from 'lucide-react';
-import Link from 'next/link'
+import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
-
-
-const NavLinks=({name}) =>{
-    const [navigationLinks, setNavigationLinks]=useState([
+const NavLinks = () => {
+    const pathname = usePathname();
+    const { data: session } = useSession();
+    
+    const [navigationLinks, setNavigationLinks] = useState([
         { name: "Home", href: "/", active: false, available: true },
-        { name: "Flash Sale", href: "/flash-sale", active: false, available: true },
+        { name: "Products", href: "/products", active: false, available: true },
         { name: "Categories", href: "/#categories", active: false, available: true },
         { name: "New Arrivals", href: "/#new-arrivals", active: false, available: true },
         { name: "Admin", href: "/admin", active: false, available: false },
-    ])
- 
-    const { data: session } = useSession();
+    ]);
+
     useEffect(() => {
-    if (session?.user?.role === "ADMIN") {
-        setNavigationLinks((prev) =>
-            prev.map((link) =>
-                link.name === "Admin" ? { ...link, available: true } : link
-            )
-        );
-    }
+        if (session?.user?.role === "ADMIN") {
+            setNavigationLinks(prev =>
+                prev.map(link =>
+                    link.name === "Admin" ? { ...link, available: true } : link
+                )
+            );
+        }
     }, [session]);
 
-    const router = useRouter();
-
-    function handleTheChangeStyle(){
-        setNavigationLinks(
-            navigationLinks.map((nav) => ({
-                ...nav,
-                active: nav.name === name,
+    // Update active state based on current route
+    useEffect(() => {
+        setNavigationLinks(prevLinks =>
+            prevLinks.map(link => ({
+                ...link,
+                active: pathname === link.href || 
+                       (link.href !== '/' && pathname.startsWith(link.href))
             }))
         );
-    }
+    }, [pathname]);
 
-    useEffect(()=>{
-        // console.log("before",navigationLinks)
-        handleTheChangeStyle()
-        // console.log("after",navigationLinks)
-    },[])
-    
     return (
-        navigationLinks.map((nav)=> (
-            nav.available && (
-               <Link
-                    key={nav.name}
-                    href={nav.href}
-                    className={`text-sm font-medium py-2 transition-colors hover:text-(--color-primary) ${
-                        nav.active ? "text-(--color-primary)" : "text-(--color-font)"
-                    }`}
-                    onClick={() => {
-                        setNavigationLinks(
-                        navigationLinks.map((link) => ({
-                            ...link,
-                            active: link.name === nav.name,
-                        }))
-                        );
-                    }}
-                >
-                    {nav.name}
-                </Link>
-
-            )
-        ))
-    )
-}
+        <>
+            {navigationLinks.map((nav) => (
+                nav.available && (
+                    <Link
+                        key={nav.name}
+                        href={nav.href}
+                        className={`text-sm font-medium py-2 transition-colors hover:text-(--color-primary) ${
+                            nav.active ? "text-(--color-primary)" : "text-(--color-font)"
+                        }`}
+                    >
+                        {nav.name}
+                    </Link>
+                )
+            ))}
+        </>
+    );
+};
 
 const Header = () => {
     return (
@@ -87,31 +72,31 @@ const Header = () => {
                 <NavBarDesktop />
             </nav>
         </header>
+    );
+};
 
-    )
-}
-
-const NavBarDesktop = ()=>{
+const NavBarDesktop = () => {
     return (
         <div className="text-(--color-font) flex justify-between items-center px-[40px] py-[12px] border-b border-gray-200">
             <div className="container mx-auto flex items-center gap-[32px]">
                 <div className="flex items-center space-x-2">
                     <Image src="/logo.svg" alt="logo-HotShop" width={32} height={32}/>
-                    <h1 className=" text-2xl">HotShop</h1>
+                    <h1 className="text-2xl">HotShop</h1>
                 </div>
                 <ul className="flex gap-[36px]">
-                    <NavLinks name="Home"/>
+                    <NavLinks />
                 </ul>
             </div>
             <MetaNav/>
         </div>
-    )
-}
+    );
+};
 
 const NavBarMobile = () => {
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { status } = useSession();
-    const isAuthenticate = status=== "authenticated"
+    const isAuthenticated = status === "authenticated";
+    
     return (
         <div className="bg-white text-(--color-font) border-b border-gray-200 sticky top-0 z-50 border-b border-gray-200">
             <div className="container mx-auto px-4">
@@ -119,12 +104,12 @@ const NavBarMobile = () => {
                     {/* Logo */}
                     <div className="flex items-center space-x-2">
                         <Image src="/logo.svg" alt="logo-HotShop" width={23} height={23} />
-                        <h1 className=" text-2xl">HotShop</h1>
+                        <h1 className="text-2xl">HotShop</h1>
                     </div>
 
                     {/* Action Icons of Bag-icon*/}
                     <div className="flex items-center space-x-4">                        
-                        {isAuthenticate && (
+                        {isAuthenticated && (
                             <div className='flex items-center gap-2'>
                                 <Link className="relative" href="/account">
                                     <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={32} height={32}/>
@@ -148,61 +133,81 @@ const NavBarMobile = () => {
                             className="md:hidden"
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         >
-                        {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </Button>
                     </div>
                 </div>
 
                 {/* Mobile Menu */}
                 {isMobileMenuOpen && (
-                <div className="md:hidden py-4 border-t border-gray-200">
-                    <div className="flex flex-col space-y-4">
-                        <MetaNav />
-                        {/* Mobile Navigation */}
-                        <div className="flex flex-col space-y-2">
-                            <NavLinks name="Home"/>
+                    <div className="md:hidden py-4 border-t border-gray-200">
+                        <div className="flex flex-col space-y-4">
+                            <MetaNav />
+                            {/* Mobile Navigation */}
+                            <div className="flex flex-col space-y-2">
+                                <NavLinks />
+                            </div>
                         </div>
                     </div>
-                </div>
                 )}
             </div>
         </div>
-    )
-}
+    );
+};
 
-const MetaNav =  () => {
+const MetaNav = () => {
     const { data: session, status } = useSession();
-    const profileImage = session?.user.image || "/defaultProfileImage.jpeg"; // Fallback image if no profile image is available
-    const userName =session?.user.name || "no-name"
-    if (status=== "unauthenticated" || status === "loading") {
+    const profileImage = session?.user.image || "/defaultProfileImage.jpeg";
+    const userName = session?.user.name || "no-name";
+
+    if (status === "unauthenticated" || status === "loading") {
         return (
-            <Link href="/login" className="text-(--color-primary) hover:text-(--color-primary-hover) font-bold text-center border-2 border-(--color-primary) hover:border-(--color-primary-hover) px-[16px] py-[8px] rounded-[8px]">Login/SignUP</Link>
+            <Link 
+                href="/login" 
+                className="text-(--color-primary) hover:text-(--color-primary-hover) font-bold text-center border-2 border-(--color-primary) hover:border-(--color-primary-hover) px-[16px] py-[8px] rounded-[8px]"
+            >
+                Login/SignUp
+            </Link>
         );
-    } else if (status=== "authenticated") {
+    } else if (status === "authenticated") {
         return (
             <>
+                {/* for desktop */}
                 <div className="hidden md:flex items-center gap-4">
                     <div className='flex items-center gap-2'>
                         <Link href="/account">
-                            <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={32} height={32}/>
+                            <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={40} height={40}/>
                         </Link>
                         <Link href="/account">
-                            <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={32} height={32}/>
+                            <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={40} height={40}/>
                         </Link>
                     </div>
                     <Link href="/account">
-                        <Image className="ml-2 rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" src={profileImage} alt="profile-image" width={32} height={32}/>
+                        <Image 
+                            className="ml-2 rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" 
+                            src={profileImage} 
+                            alt="profile-image" 
+                            width={32} 
+                            height={32}
+                        />
                     </Link>
                 </div>
+                {/* for mobile */}
                 <div className="flex md:hidden items-center gap-2">
                     <Link href="/account">
-                        <Image className="rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" src={profileImage} alt="profile-image" width={32} height={32}/>
+                        <Image 
+                            className="rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" 
+                            src={profileImage} 
+                            alt="profile-image" 
+                            width={32} 
+                            height={32}
+                        />
                     </Link>
                     <h3 className='text-sm'>{userName}</h3>
                 </div>
             </>
-        )
+        );
     }
-}
+};
 
 export default Header;

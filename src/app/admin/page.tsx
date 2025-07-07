@@ -15,8 +15,8 @@ interface AdminStats {
 // Function to fetch admin statistics on the server
 async function getAdminStats(): Promise<AdminStats | null> {
   try {
-    // Ensure NEXTAUTH_URL is correctly set in your .env.local and deployment environment
-    const url = `${process.env.NEXTAUTH_URL}/api/admin/stats`;
+    // Ensure NEXT_PUBLIC_APP_URL is correctly set in your .env.local and deployment environment
+    const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/admin/stats`;
     const res = await fetch(url, {
       cache: 'no-store', // Always fetch fresh data for admin dashboard
       next: { revalidate: 60 } // Revalidate every minute

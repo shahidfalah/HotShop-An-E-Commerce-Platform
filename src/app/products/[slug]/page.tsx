@@ -52,7 +52,7 @@ interface ProductDetailPageProps {
 
 async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
-    const url = `${process.env.NEXTAUTH_URL}/api/products?slug=${slug}`;
+    const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/products?slug=${slug}`;
     const res = await fetch(url, {
       cache: 'no-store',
       next: { revalidate: 60 }

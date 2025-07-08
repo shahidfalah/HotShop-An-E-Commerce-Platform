@@ -269,9 +269,12 @@ export default function CartPage() {
                 <span>${total.toFixed(2)}</span>
               </div>
             </div>
-            <Button className="w-full mt-6 bg-(--color-primary) hover:bg-(--color-primary-hover) text-white py-3 text-lg">
-              Checkout
-            </Button>
+            
+            <Link href='/checkout'>
+              <Button className="w-full mt-6 bg-(--color-primary) hover:bg-(--color-primary-hover) text-white py-3 text-lg">
+                Checkout
+              </Button>
+            </Link>
           </div>
         </div>
       )}

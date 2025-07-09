@@ -11,6 +11,17 @@ export class OrderService {
   }
 
   /**
+   * Counts orders for a specific user.
+   * @param userId The ID of the user.
+   * @returns The total count of orders for the user.
+   */
+  static async countOrdersByUserId(userId: string): Promise<number> {
+    return await prisma.order.count({
+      where: { userId: userId },
+    });
+  }
+
+  /**
    * Calculates the total revenue from all completed orders.
    * @returns The total revenue as a number, or 0 if no completed orders.
    */

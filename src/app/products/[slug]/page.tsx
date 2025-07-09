@@ -1,19 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/products/[slug]/page.tsx
-"use client"; // Convert to Client Component for interactivity
+"use client";
 
-import React, { useState } from 'react'; // Import useState
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/_components/ui/button';
-import { ArrowLeft, ShoppingCart } from 'lucide-react'; // Import ShoppingCart, CheckCircle, XCircle
-import { useSession } from 'next-auth/react'; // Import useSession for authentication check
-import { useRouter, useParams } from 'next/navigation'; // Import useRouter and useParams for page refresh and params access
+import { ArrowLeft, ShoppingCart, CheckCircle, XCircle, Heart } from 'lucide-react'; // Import Heart icon
+import { useSession } from 'next-auth/react';
+import { useRouter, useParams } from 'next/navigation';
 
-// Import the ProductCountdown Client Component
 import ProductCountdown from '@/_components/ProductCountdown';
 
-// Define a comprehensive Product interface for this page
 interface Product {
   id: string;
   title: string;
@@ -21,20 +19,20 @@ interface Product {
   description: string | null;
   price: number;
   salePrice?: number | null;
-  saleStart?: string | null; // ISO string
-  saleEnd?: string | null;    // ISO string
+  saleStart?: string | null;
+  saleEnd?: string | null;
   isFlashSale?: boolean;
-  itemsSold?: number | null; // Keeping in interface for API consistency, but not displayed
-  itemLimit?: number | null; // Keeping in interface for API consistency, but not displayed
+  itemsSold?: number | null;
+  itemLimit?: number | null;
   discountPercentage?: number | null;
-  images: string[]; // Array of full image URLs
+  images: string[];
   brand?: string | null;
   width?: string | null;
   height?: string | null;
   stock: number;
   isActive: boolean;
-  createdAt: string; // ISO string
-  updatedAt: string; // ISO string
+  createdAt: string;
+  updatedAt: string;
   createdById: string;
   categoryId: string;
   rating?: number | null;
@@ -47,26 +45,15 @@ interface Product {
     reviews: number;
     wishlists: number;
   };
+  isWishlistedByUser?: boolean; // NEW: Indicates if the current user has wishlisted this product
 }
 
-// interface ProductDetailPageProps {
-//   params: {
-//     slug: string;
-//   };
-// }
-
-// getProductBySlug remains an async function, but it's now called within a Client Component.
-// For Next.js App Router, fetching data in a Client Component's useEffect is common,
-// or passing initial data from a Server Component parent.
-// For this example, we'll keep the fetch function separate and call it directly.
-// In a real app, you might use SWR or React Query for client-side fetching.
 async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
-    // Ensure NEXT_PUBLIC_APP_URL is correctly set in your .env.local for client-side fetches
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-    const url = `${baseUrl}/api/products?slug=${slug}`;
+    const url = `${baseUrl}/api/products?slug=${slug}`; // This API needs to return isWishlistedByUser
     const res = await fetch(url, {
-      cache: 'no-store', // Always fetch fresh data for product details
+      cache: 'no-store',
     });
 
     if (!res.ok) {
@@ -86,8 +73,8 @@ async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 }
 
-export default function ProductDetailPage() { // Removed params from props, will use useParams
-  const params = useParams<{ slug: string }>(); // Use useParams hook
+export default function ProductDetailPage() {
+  const params = useParams<{ slug: string }>();
   const { slug } = params;
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -95,12 +82,14 @@ export default function ProductDetailPage() { // Removed params from props, will
   const [errorProduct, setErrorProduct] = useState<string | null>(null);
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [, setAddToCartMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [addToCartMessage, setAddToCartMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  // NEW: Wishlist state for this specific product
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   const { status } = useSession();
   const router = useRouter();
 
-  // Fetch product data on component mount
   React.useEffect(() => {
     const fetchProduct = async () => {
       setLoadingProduct(true);
@@ -108,7 +97,9 @@ export default function ProductDetailPage() { // Removed params from props, will
       try {
         const fetchedProduct = await getProductBySlug(slug);
         setProduct(fetchedProduct);
-        if (!fetchedProduct) {
+        if (fetchedProduct) {
+          setIsWishlisted(fetchedProduct.isWishlistedByUser || false); // Initialize wishlist state
+        } else {
           setErrorProduct("Product not found.");
         }
       } catch (err: any) {
@@ -119,23 +110,59 @@ export default function ProductDetailPage() { // Removed params from props, will
       }
     };
     fetchProduct();
-  }, [slug]); // Re-fetch if slug changes
+  }, [slug]);
+
+  // NEW: Function to toggle wishlist status
+  const toggleWishlist = async () => {
+    if (status === "loading") return;
+    if (status === "unauthenticated") {
+      setAddToCartMessage({ type: 'error', text: 'Please log in to manage your wishlist.' });
+      setTimeout(() => setAddToCartMessage(null), 3000);
+      return;
+    }
+
+    try {
+      const method = isWishlisted ? "DELETE" : "POST";
+      const response = await fetch("/api/wishlist", {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product?.id }), // Use product?.id
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.message || "Failed to update wishlist.");
+      }
+
+      setIsWishlisted(prev => !prev);
+      setAddToCartMessage({ type: 'success', text: isWishlisted ? 'Removed from wishlist!' : 'Added to wishlist!' });
+      router.refresh();
+
+    } catch (err: any) {
+      console.error("Error toggling wishlist from detail page:", err);
+      setAddToCartMessage({ type: 'error', text: err.message || "An error occurred." });
+    } finally {
+      setTimeout(() => setAddToCartMessage(null), 3000);
+    }
+  };
+
 
   const handleAddToCart = async () => {
-    setAddToCartMessage(null); // Clear previous messages
+    setAddToCartMessage(null);
     setIsAddingToCart(true);
 
     if (status === "unauthenticated") {
       setAddToCartMessage({ type: 'error', text: 'Please log in to add items to your cart.' });
       setIsAddingToCart(false);
-      setTimeout(() => setAddToCartMessage(null), 3000); // Clear message after 3 seconds
+      setTimeout(() => setAddToCartMessage(null), 3000);
       return;
     }
 
     if (!product || product.stock === 0) {
       setAddToCartMessage({ type: 'error', text: 'This product is out of stock or unavailable.' });
       setIsAddingToCart(false);
-      setTimeout(() => setAddToCartMessage(null), 3000); // Clear message after 3 seconds
+      setTimeout(() => setAddToCartMessage(null), 3000);
       return;
     }
 
@@ -143,7 +170,7 @@ export default function ProductDetailPage() { // Removed params from props, will
       const response = await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: product.id, quantity: 1 }), // Add 1 item by default
+        body: JSON.stringify({ productId: product.id, quantity: 1 }),
       });
 
       const contentType = response.headers.get('content-type');
@@ -160,14 +187,14 @@ export default function ProductDetailPage() { // Removed params from props, will
       }
 
       setAddToCartMessage({ type: 'success', text: `${product.title} added to cart!` });
-      router.refresh(); // Trigger a re-fetch of session data (which includes cart count in header)
+      router.refresh();
 
     } catch (err: any) {
       console.error("Error adding to cart from product detail:", err);
       setAddToCartMessage({ type: 'error', text: err.message || "An unexpected error occurred." });
     } finally {
       setIsAddingToCart(false);
-      setTimeout(() => setAddToCartMessage(null), 3000); // Clear message after 3 seconds
+      setTimeout(() => setAddToCartMessage(null), 3000);
     }
   };
 
@@ -187,7 +214,7 @@ export default function ProductDetailPage() { // Removed params from props, will
     );
   }
 
-  if (!product) { // Should be caught by errorProduct, but good for type safety
+  if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-(--color-background)">
         <p className="text-gray-600 text-lg">Product not found.</p>
@@ -278,7 +305,7 @@ export default function ProductDetailPage() { // Removed params from props, will
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-4 items-center"> {/* Added items-center for vertical alignment */}
+            <div className="flex space-x-4 items-center">
               <Link href="/products">
                 <Button variant="outline" className="px-6 py-3 border-none text-(--color-font) bg-(#E0E0E0) hover:bg-(#bdbdbd)">
                   <ArrowLeft className="w-4 h-4 mr-2" /> Go Back
@@ -287,7 +314,7 @@ export default function ProductDetailPage() { // Removed params from props, will
               <Button
                 onClick={handleAddToCart}
                 className="px-8 py-3 bg-(--color-primary) text-white hover:bg-(--color-primary-hover) shadow-md"
-                disabled={isAddingToCart || product.stock === 0} // Disable if adding or out of stock
+                disabled={isAddingToCart || product.stock === 0}
               >
                 {isAddingToCart ? (
                   "Adding..."
@@ -299,10 +326,22 @@ export default function ProductDetailPage() { // Removed params from props, will
                   </>
                 )}
               </Button>
+              {/* NEW: Wishlist Button for Product Detail Page */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleWishlist}
+                className={`w-12 h-12 rounded-full border-none shadow-md ${
+                  isWishlisted ? "bg-(--color-primary) text-white" : "bg-gray-100 text-gray-600"
+                } hover:bg-(--color-primary) hover:text-white transition-colors duration-200`}
+                disabled={status === "loading"}
+              >
+                <Heart className={`w-6 h-6 ${isWishlisted ? "fill-white" : "fill-none"}`} />
+              </Button>
             </div>
             
-            {/* Add to Cart Message */}
-            {/* {addToCartMessage && (
+            {/* Add to Cart/Wishlist Message */}
+            {addToCartMessage && (
               <div className={`mt-4 p-3 text-sm rounded-md flex items-center gap-2 ${
                 addToCartMessage.type === 'success'
                   ? 'bg-green-100 text-green-700 border border-green-300'
@@ -311,7 +350,7 @@ export default function ProductDetailPage() { // Removed params from props, will
                 {addToCartMessage.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                 <span>{addToCartMessage.text}</span>
               </div>
-            )} */}
+            )}
           </div>
         </div>
       </div>

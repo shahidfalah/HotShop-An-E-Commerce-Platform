@@ -11,6 +11,17 @@ export class ReviewService {
   }
 
   /**
+   * Counts reviews for a specific user.
+   * @param userId The ID of the user.
+   * @returns The total count of reviews given by the user.
+   */
+  static async countReviewsByUserId(userId: string): Promise<number> {
+    return await prisma.review.count({
+      where: { userId: userId },
+    });
+  }
+
+  /**
    * Calculates the average rating across all reviews.
    * @returns The average rating as a number, or 0 if no reviews exist.
    */

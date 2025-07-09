@@ -1,124 +1,136 @@
-"use client"
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/app/account/page.tsx
+// This is now a Server Component. NO "use client" directive here.
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { signOut } from "next-auth/react"
-import { useSession } from "next-auth/react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth"; // Your NextAuth configuration
+import { redirect } from "next/navigation"; // For server-side redirects
+// Import Client Components that will handle interactivity
+import ProfileInfo from "@/_components/account/ProfileInfo";
+import AccountItem from "@/_components/account/AccountItem"; // AccountItem needs to be a Client Component
+import AccountSection from "@/_components/account/AccountSection";
+import AccountStats from "@/_components/account/AccountStats"; // AccountStats needs to be a Client Component
+import LogoutButton from "@/_components/account/LogoutButton"; // This will be a new Client Component
 
-import { ShoppingBag, Heart, MessageCircle, LogOut, Star, Settings } from "lucide-react"
+// Import services for direct database access
+import { OrderService } from "@/lib/database/order.service";
+import { WishlistService } from "@/lib/database/wishlist.service"; // Assuming you have a WishlistService
+import { ReviewService } from "@/lib/database/review.service";
 
-import ProfileInfo from "@/_components/account/ProfileInfo"
-import AccountItem from "@/_components/account/AccountItem"
-import AccountSection from "@/_components/account/AccountSection"
-import AccountStats from "@/_components/account/AccountStats"
-
-// Mock data - replace with your actual data fetching
-let mockUser = {
-  name: "John Doe",
-  email: "john.doe@example.com",
-  image: "",
-  role: "Premium Member",
+// Define interface for user stats
+interface UserStats {
+  totalOrders: number;
+  wishlistItems: number;
+  reviewsGiven: number;
 }
 
-const mockStats = {
-  totalOrders: 12,
-  wishlistItems: 8,
-  reviewsGiven: 5,
+// Function to fetch user stats directly from Prisma on the server
+async function getUserStats(userId: string): Promise<UserStats | null> {
+  try {
+    // Fetch total orders count
+    const totalOrders = await OrderService.countOrdersByUserId(userId);
+
+    // Fetch wishlist items count
+    const wishlistItems = await WishlistService.countWishlistItemsByUserId(userId);
+
+    // Fetch reviews given count
+    const reviewsGiven = await ReviewService.countReviewsByUserId(userId);
+
+    return {
+      totalOrders,
+      wishlistItems,
+      reviewsGiven,
+    };
+  } catch (error) {
+    console.error("Error fetching user stats directly from Prisma:", error);
+    return null;
+  }
 }
 
-export default function AccountPage() {
-  const { data: session } = useSession();
-  mockUser={
-    name: session?.user?.name || "John Doe",
-    email: session?.user?.email as string,
-    image: session?.user?.image || "/defaultProfileImage.jpeg",
-    role: session?.user?.role,
+export default async function AccountPage() {
+  const session = await getServerSession(authOptions);
+
+  // If not authenticated, redirect to login page
+  if (!session?.user?.id) {
+    redirect('/login');
   }
 
-  const router = useRouter()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  // Fetch real stats for the authenticated user directly from Prisma
+  const userStats = await getUserStats(session.user.id);
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true)
-    try {
-      await signOut({ callbackUrl: "/" })
-    } catch (error) {
-      console.error("Logout error:", error)
-      setIsLoggingOut(false)
-    }
-  }
+  // Prepare user object for ProfileInfo
+  const user = {
+    name: session.user.name || "Guest",
+    email: session.user.email || "",
+    image: session.user.image || "/defaultProfileImage.jpeg", // Ensure you have a default image
+    role: (session.user as any).role || "User", // Assuming role is on session.user
+  };
 
-  const handleNavigation = (path: string) => {
-    router.push(path)
-  }
+  // Default stats if fetching fails
+  const defaultStats: UserStats = { totalOrders: 0, wishlistItems: 0, reviewsGiven: 0 };
+  const statsToDisplay = userStats || defaultStats;
 
   return (
     <main className="min-h-screen bg-(--color-background) text-(--color-font)">
-      
       {/* Mobile Layout */}
       <div className="lg:hidden">
         <div className="px-4 py-6">
-          {/* Profile Info */}
-          <ProfileInfo user={mockUser} />
+          {/* Profile Info (Client Component, receives props) */}
+          <ProfileInfo user={user} />
 
-          {/* Stats */}
-          <AccountStats stats={mockStats} />
+          {/* Stats (Client Component, receives props) */}
+          <AccountStats stats={statsToDisplay} />
 
-          {/* Account Actions */}
+          {/* Account Actions (AccountItem is a Client Component due to onClick/Link) */}
           <AccountSection title="Account">
             <AccountItem
-              icon={ShoppingBag}
+              icon="ShoppingBag" // Passed as component
               title="Past Orders"
               subtitle="View your order history"
-              count={mockStats.totalOrders}
-              onClick={() => handleNavigation("/account/orders")}
+              count={statsToDisplay.totalOrders}
+              path="/account/orders" // Use path prop for navigation
             />
 
             <AccountItem
-              icon={Heart}
+              icon="Heart" // Passed as component
               title="Wishlist"
               subtitle="Your saved items"
-              count={mockStats.wishlistItems}
-              onClick={() => handleNavigation("/account/wishlist")}
+              count={statsToDisplay.wishlistItems}
+              path="/account/wishlist" // Use path prop for navigation
             />
 
             <AccountItem
-              icon={Star}
+              icon="Star" // Passed as component
               title="My Reviews"
               subtitle="Reviews you've written"
-              count={mockStats.reviewsGiven}
-              onClick={() => handleNavigation("/account/reviews")}
+              count={statsToDisplay.reviewsGiven}
+              path="/account/reviews" // Use path prop for navigation
             />
           </AccountSection>
 
           {/* Support */}
           <AccountSection title="Support">
             <AccountItem
-              icon={MessageCircle}
+              icon="MessageCircle" // Passed as component
               title="Contact Support"
               subtitle="Get help with your account"
-              onClick={() => handleNavigation("/support")}
+              path="/support"
             />
           </AccountSection>
 
           {/* Account Settings */}
           <AccountSection title="Settings">
             <AccountItem
-              icon={Settings}
+              icon="Settings" // Passed as component
               title="Account Settings"
               subtitle="Manage your account preferences"
-              onClick={() => handleNavigation("/account/settings")}
+              path="/account/settings"
             />
           </AccountSection>
 
-          {/* Logout */}
+          {/* Logout Button (Client Component) */}
           <div className="mt-8">
-            <AccountItem
-              icon={LogOut}
-              title={isLoggingOut ? "Logging out..." : "Log Out"}
-              onClick={handleLogout}
-              variant="danger"
-            />
+            <LogoutButton />
           </div>
         </div>
       </div>
@@ -127,13 +139,13 @@ export default function AccountPage() {
       <div className="hidden lg:block">
         <div className="container mx-auto px-6 py-8">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-font mb-8">My Account</h1>
+            <h1 className="text-3xl font-bold text-(--color-font) mb-8">My Account</h1>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column - Profile & Stats */}
               <div className="lg:col-span-1">
-                <ProfileInfo user={mockUser} />
-                <AccountStats stats={mockStats} />
+                <ProfileInfo user={user} />
+                <AccountStats stats={statsToDisplay} />
               </div>
 
               {/* Right Column - Account Actions */}
@@ -141,58 +153,53 @@ export default function AccountPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Account Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-font mb-4">Account</h3>
+                    <h3 className="text-lg font-semibold text-(--color-font) mb-4">Account</h3>
 
                     <AccountItem
-                      icon={ShoppingBag}
+                      icon="ShoppingBag"
                       title="Past Orders"
                       subtitle="View order history"
-                      count={mockStats.totalOrders}
-                      onClick={() => handleNavigation("/account/orders")}
+                      count={statsToDisplay.totalOrders}
+                      path="/account/orders"
                     />
 
                     <AccountItem
-                      icon={Heart}
+                      icon="Heart"
                       title="Wishlist"
                       subtitle="Saved items"
-                      count={mockStats.wishlistItems}
-                      onClick={() => handleNavigation("/account/wishlist")}
+                      count={statsToDisplay.wishlistItems}
+                      path="/account/wishlist"
                     />
 
                     <AccountItem
-                      icon={Star}
+                      icon="Star"
                       title="My Reviews"
                       subtitle="Your reviews"
-                      count={mockStats.reviewsGiven}
-                      onClick={() => handleNavigation("/account/reviews")}
+                      count={statsToDisplay.reviewsGiven}
+                      path="/account/reviews"
                     />
                   </div>
 
                   {/* Support & Settings Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-font mb-4">Support & Settings</h3>
+                    <h3 className="text-lg font-semibold text-(--color-font) mb-4">Support & Settings</h3>
 
                     <AccountItem
-                      icon={MessageCircle}
+                      icon="MessageCircle"
                       title="Contact Support"
                       subtitle="Get help"
-                      onClick={() => handleNavigation("/support")}
+                      path="/support"
                     />
 
                     <AccountItem
-                      icon={Settings}
+                      icon="Settings"
                       title="Account Settings"
                       subtitle="Manage preferences"
-                      onClick={() => handleNavigation("/account/settings")}
+                      path="/account/settings"
                     />
 
-                    <div className="pt-4">
-                      <AccountItem
-                        icon={LogOut}
-                        title={isLoggingOut ? "Logging out..." : "Log Out"}
-                        onClick={handleLogout}
-                        variant="danger"
-                      />
+                    <div>
+                      <LogoutButton />
                     </div>
                   </div>
                 </div>
@@ -202,5 +209,5 @@ export default function AccountPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }

@@ -1,100 +1,64 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/account/orders/page.tsx
-"use client";
+// This is a Server Component. No "use client" directive.
 
-import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Package, Calendar, DollarSign, Loader2, Info, XCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import Image from "next/image";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { OrderService } from "@/lib/database/order.service";
+import { ReviewService } from "@/lib/database/review.service";
+
+import OrderItemCard from "@/_components/account/OrderItemCard"; // Client Component for individual order item display
+import { ArrowLeft, Package, Calendar, DollarSign, Info } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/_components/ui/button"; // Assuming you have a Button component
 
-// Define interfaces based on your API response for orders
-interface OrderProduct {
+// Define interfaces based on your Prisma models and service responses
+interface ProductDetailsForOrder {
   id: string;
   title: string;
+  slug: string;
   images: string[];
-  price: number; // The original product price
-  salePrice: number | null; // The product's sale price
+  price: number;
+  salePrice: number | null;
 }
 
-interface OrderItem {
+interface OrderItemWithProduct {
   id: string;
   quantity: number;
-  price: number; // The price at which it was sold in THIS order
+  price: number;
   productId: string;
-  product: OrderProduct;
-}
-
-interface OrderAddress {
-  id: string;
-  fullName: string;
-  address1: string;
-  city: string;
-  state: string;
-  zipCode: string | null;
-  country: string | null;
-}
-
-interface Payment {
-  id: string;
-  paymentType: string; // e.g., 'CREDIT_CARD', 'PAYPAL', 'CASH_ON_DELIVERY'
-  status: string; // e.g., 'PENDING', 'COMPLETED'
-  amount: number;
+  product: ProductDetailsForOrder;
 }
 
 interface Order {
   id: string;
   total: number;
   status: string; // OrderStatus enum string
-  createdAt: string; // ISO string
-  updatedAt: string; // ISO string
+  createdAt: Date;
+  updatedAt: Date;
   userId: string;
-  orderItems: OrderItem[];
-  shippingAddress: OrderAddress | null;
-  billingAddress: OrderAddress | null;
-  payment: Payment | null;
+  orderItems: OrderItemWithProduct[];
 }
 
-export default function OrdersPage() {
-  const router = useRouter();
-  const { status } = useSession();
+export default async function AccountOrdersPage() {
+  const session = await getServerSession(authOptions);
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  if (!session?.user?.id) {
+    redirect('/login'); // Redirect unauthenticated users
+  }
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/orders");
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch orders.");
-      }
-      const result = await response.json();
-      if (result.success && Array.isArray(result.data)) {
-        setOrders(result.data);
-      } else {
-        setOrders([]); // No data or unexpected format
-      }
-    } catch (err: any) {
-      console.error("Error fetching orders:", err);
-      setError(err.message || "An error occurred while fetching your orders.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const userId = session.user.id;
+  let orders: Order[] = [];
+  let error: string | null = null;
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push('/login'); // Redirect to login if not authenticated
-    } else if (status === "authenticated") {
-      fetchOrders();
-    }
-  }, [status, router, fetchOrders]);
+  try {
+    // Fetch ALL orders for the user, regardless of status
+    const fetchedOrders = await OrderService.getAllUserOrdersWithProducts(userId);
+    orders = fetchedOrders as Order[]; // Cast to your local interface
+  } catch (err: any) {
+    console.error("Failed to fetch user orders on server:", err);
+    error = err.message || "Could not load your orders.";
+  }
 
   const getStatusClasses = (orderStatus: string) => {
     switch (orderStatus) {
@@ -113,23 +77,13 @@ export default function OrdersPage() {
     }
   };
 
-  if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-(--color-background) text-gray-600">
-        <Loader2 className="w-8 h-8 animate-spin mr-2" /> Loading orders...
-      </div>
-    );
-  }
-
+  // Server-side rendering of error/no orders states
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-(--color-background) text-red-600 p-4 text-center">
-        <XCircle className="w-12 h-12 mb-4" />
+        <Info className="w-12 h-12 mb-4" />
         <p className="text-xl font-semibold mb-2">Error Loading Orders</p>
         <p className="text-lg">{error}</p>
-        <Button onClick={fetchOrders} className="mt-6 bg-(--color-primary) hover:bg-(--color-primary-hover) text-white">
-          Try Again
-        </Button>
       </div>
     );
   }
@@ -141,29 +95,29 @@ export default function OrdersPage() {
         <p className="text-xl font-semibold mb-2">No Orders Found</p>
         <p className="text-lg mb-6">It looks like you haven&apos;t placed any orders yet.</p>
         <Link href="/products">
-          <Button className="bg-(--color-primary) hover:bg-(--color-primary-hover) text-white px-6 py-3">
+          <button className="bg-(--color-primary) hover:bg-(--color-primary-hover) text-white px-6 py-3 rounded-md">
             Start Shopping
-          </Button>
+          </button>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-(--color-background) text-(--color-font) p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-(--color-background) text-(--color-font) p-4 md:p-8">
+      <div className="max-w-4xl mx-auto bg-(--color-surface) rounded-lg shadow-sm border border-(--color-border) p-6 md:p-8">
         {/* Header */}
         <div className="flex items-center mb-6">
-          <button onClick={() => router.back()} className="mr-4 p-2 rounded-full bg-(--color-surface) shadow-md hover:bg-gray-100 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-(--color-font)" />
-          </button>
+          <Link href="/account" className="text-gray-600 hover:text-(--color-primary) transition-colors mr-3">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
           <h1 className="text-2xl md:text-3xl font-bold text-(--color-font)">My Orders</h1>
         </div>
 
         {/* Orders List */}
         <div className="space-y-6">
-          {orders.map((order) => (
-            <div key={order.id} className="bg-(--color-surface) rounded-lg p-4 shadow-sm border border-(--color-border)">
+          {orders.map(async (order) => (
+            <div key={order.id} className="bg-white rounded-lg p-4 shadow-sm border border-(--color-border)">
               {/* Order Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-4 border-b border-(--color-border)">
                 <div className="flex items-center space-x-3 mb-3 sm:mb-0">
@@ -171,7 +125,7 @@ export default function OrdersPage() {
                     <Package className="w-5 h-5 text-(--color-primary)" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-(--color-font)">Order ID: {order.id}</h3>
+                    <h3 className="font-semibold text-lg text-(--color-font)">Order ID: {order.id.slice(-6)}</h3>
                     <p className="text-(--color-muted) text-sm flex items-center">
                       <Calendar className="w-4 h-4 mr-1" />
                       {new Date(order.createdAt).toLocaleDateString('en-US', {
@@ -183,7 +137,7 @@ export default function OrdersPage() {
                   </div>
                 </div>
                 <div
-                  className={`px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wide ${getStatusClasses(order.status)}`}
+                  className={`px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wide w-[fit-content] ${getStatusClasses(order.status)}`}
                 >
                   {order.status}
                 </div>
@@ -191,29 +145,22 @@ export default function OrdersPage() {
 
               {/* Order Items */}
               <div className="space-y-4 mb-4">
-                {order.orderItems.map((item) => (
-                  <div key={item.id} className="flex items-center">
-                    <div className="w-16 h-16 flex-shrink-0 mr-4 rounded-md overflow-hidden border border-(--color-border)">
-                      <Image
-                        src={item.product.images[0] || "/placeholder.svg"}
-                        alt={item.product.title}
-                        width={64}
-                        height={64}
-                        className="object-cover w-full h-full"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://placehold.co/64x64/E0E0E0/0D171C?text=No+Image`;
-                        }}
-                      />
-                    </div>
-                    <div className="flex-grow">
-                      <p className="font-medium text-gray-800">{item.product.title}</p>
-                      <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
-                      <p className="text-sm text-(--color-primary) font-semibold">
-                        ${item.price.toFixed(2)} each
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                {await Promise.all(order.orderItems.map(async (item) => {
+                  // Only check for review status if the order is DELIVERED
+                  const hasReviewed = order.status === "DELIVERED"
+                    ? await ReviewService.hasUserReviewedProduct(userId, item.productId)
+                    : false; // Cannot review non-delivered items
+
+                  return (
+                    <OrderItemCard
+                      key={item.id}
+                      orderItem={item}
+                      hasReviewed={hasReviewed}
+                      userId={userId} // Pass userId to the Client Component for modal
+                      orderStatus={order.status} // Pass order status to decide review button visibility
+                    />
+                  );
+                }))}
               </div>
 
               {/* Order Summary Footer */}
@@ -222,17 +169,11 @@ export default function OrdersPage() {
                   <DollarSign className="w-4 h-4 mr-1" />
                   Total: ${order.total.toFixed(2)}
                 </div>
-                {/* Link to Order Details Page (if you create one later) */}
-                {/* <Link href={`/account/orders/${order.id}`}>
-                  <Button variant="link" className="p-0 h-auto text-(--color-primary) hover:underline">
-                    View Details
-                  </Button>
-                </Link> */}
               </div>
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </main>
   );
 }

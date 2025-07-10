@@ -15,9 +15,9 @@ interface ProfileInfoProps {
 export default function ProfileInfo({ user }: ProfileInfoProps) {
   return (
     <div className="bg-surface rounded-2xl p-6 shadow-custom mb-6">
-      <div className="flex items-center space-x-4">
+      <div className="flex items-start space-x-4">
         {/* Profile Image */}
-        <div className="relative">
+        <div className="relative mt-2">
           {user.image ? (
             <Image
               src={user.image}
@@ -32,14 +32,14 @@ export default function ProfileInfo({ user }: ProfileInfoProps) {
             </div>
           )}
           {/* Online Status Indicator */}
-          <div className="absolute bottom-1 right-1 w-4 h-4 bg-(--color-success) rounded-full border-2 border-white"></div>
+          <div className="absolute bottom-[0px] right-[0.8px] w-4 h-4 bg-(--color-success) rounded-full border-2 border-white"></div>
         </div>
 
         {/* User Info */}
         <div className="flex-1">
           <h2 className="text-xl font-semibold text-font mb-1">{user.name}</h2>
           <p className="text-muted text-sm mb-2">{user.email}</p>
-          <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary-soft">
+          <div className="inline-flex items-center rounded-full bg-primary-soft  bg-(--color-border) px-[10px] py-[4px]">
             <span className="text-primary text-xs font-medium">{user.role || "Premium Member"}</span>
           </div>
         </div>

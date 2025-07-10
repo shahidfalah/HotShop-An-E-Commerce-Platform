@@ -161,12 +161,12 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-(--color-background) text-(--color-font) p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-(--color-background) text-(--color-font) p-4 md:p-8">
+      <div className="max-w-4xl mx-auto bg-(--color-surface) rounded-lg shadow-sm border border-(--color-border) p-6 md:p-8">
         {/* Header */}
         <div className="flex items-center mb-6">
-          <button onClick={() => router.back()} className="mr-4 p-2 rounded-full bg-(--color-surface) shadow-md hover:bg-gray-100 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-(--color-font)" />
+          <button onClick={() => router.back()} className="text-gray-600 hover:text-(--color-primary) transition-colors mr-3">
+            <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl md:text-3xl font-bold text-(--color-font)">My Wishlist</h1>
         </div>
@@ -174,8 +174,8 @@ export default function WishlistPage() {
         {actionMessage && (
           <div className={`mb-6 p-4 rounded-md flex items-center gap-2 ${
             actionMessage.type === 'success'
-              ? 'bg-green-100 text-green-700 border border-green-300'
-              : 'bg-red-100 text-red-700 border border-red-300'
+              ? 'bg-(--color-success-bg) text-(--color-success) border border-(--color-success)'
+              : 'bg-(--color-error-bg) text-(--color-error) border border-(--color-error-bg)'
           }`}>
             {actionMessage.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <XCircleIcon className="w-5 h-5" />}
             <span>{actionMessage.text}</span>
@@ -185,7 +185,7 @@ export default function WishlistPage() {
         {/* Wishlist Items List */}
         <div className="space-y-6">
           {wishlistItems.map((item) => (
-            <div key={item.id} className="bg-(--color-surface) rounded-lg p-4 shadow-sm border border-(--color-border) flex flex-col sm:flex-row items-center">
+            <div key={item.id} className="bg-(--color-background) rounded-lg p-4 shadow-sm border border-(--color-border) flex flex-col sm:flex-row items-center">
               <Link href={`/products/${item.product.slug}`} className="flex-shrink-0 mr-4">
                 <div className="w-24 h-24 rounded-md overflow-hidden border border-(--color-border)">
                   <Image
@@ -227,7 +227,7 @@ export default function WishlistPage() {
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4 sm:mt-0 sm:ml-auto">
                 <Button
                   onClick={() => handleAddToCart(item.productId, item.product.title)}
-                  className="bg-black text-white hover:bg-gray-800 px-4 py-2 text-sm flex items-center justify-center"
+                  className="bg-(--color-primary) text-(--color-background) hover:bg-(--color-primary-hover) px-4 py-2 text-sm flex items-center justify-center"
                   disabled={item.product.stock === 0}
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" /> Add to Cart
@@ -235,7 +235,7 @@ export default function WishlistPage() {
                 <Button
                   variant="outline"
                   onClick={() => handleRemoveFromWishlist(item.productId)}
-                  className="border-red-400 text-red-500 hover:bg-red-50 hover:text-red-600 px-4 py-2 text-sm flex items-center justify-center"
+                  className="border-(--color-primary) text-(--color-primary) bg-transparent hover:bg-(--color-primary) hover:text-(--color-background) px-4 py-2 text-sm flex items-center justify-center"
                 >
                   <XCircleIcon className="w-4 h-4 mr-2" /> Remove
                 </Button>
@@ -244,6 +244,6 @@ export default function WishlistPage() {
           ))}
         </div>
       </div>
-    </div>
+    </main>
   );
 }

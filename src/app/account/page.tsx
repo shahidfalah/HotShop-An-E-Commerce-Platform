@@ -188,7 +188,7 @@ export default async function AccountPage() {
                       icon="MessageCircle"
                       title="Contact Support"
                       subtitle="Get help"
-                      path="/support"
+                      path="/contact"
                     />
 
                     <AccountItem

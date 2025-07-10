@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/lib/database/review.service.ts
 import { prisma } from "@/lib/prisma";
 
@@ -36,6 +37,131 @@ export class ReviewService {
     return result._avg.rating ? parseFloat(result._avg.rating.toFixed(1)) : 0;
   }
 
-  // You might have other review-related methods here (e.g., createReview, findReviewsByProduct, etc.)
-  // Add them if they exist in your current setup.
+  /**
+   * Retrieves all reviews written by a specific user.
+   * Includes product details for each review.
+   * @param userId The ID of the user.
+   * @returns An array of review objects.
+   */
+  static async getReviewsByUserId(userId: string) {
+    try {
+      const reviews = await prisma.review.findMany({
+        where: { userId: userId },
+        include: {
+          product: { // Include product details
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              images: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc', // Order by most recent review first
+        },
+      });
+      return reviews;
+    } catch (error) {
+      console.error("Error fetching reviews by user ID:", error);
+      throw new Error("Failed to retrieve user reviews.");
+    }
+  }
+
+  /**
+   * Checks if a user has already reviewed a specific product.
+   * This assumes a unique constraint on (userId, productId) in your Review model.
+   * @param userId The ID of the user.
+   * @param productId The ID of the product.
+   * @returns True if the user has reviewed the product, false otherwise.
+   */
+  static async hasUserReviewedProduct(userId: string, productId: string): Promise<boolean> {
+    try {
+      const review = await prisma.review.findUnique({
+        where: {
+          userId_productId: { // Assumes this unique compound key exists in your schema
+            userId: userId,
+            productId: productId,
+          },
+        },
+        select: { id: true }, // Select only ID for efficiency
+      });
+      return !!review; // Returns true if a review exists, false otherwise
+    } catch (error) {
+      console.error("Error checking if user reviewed product:", error);
+      throw new Error("Failed to check review status for product.");
+    }
+  }
+
+  /**
+   * Creates a new review.
+   * @param userId The ID of the user writing the review.
+   * @param productId The ID of the product being reviewed.
+   * @param rating The rating (1-5).
+   * @param comment The review comment (optional).
+   * @returns The created review object.
+   */
+  static async createReview(userId: string, productId: string, rating: number, comment?: string) {
+    try {
+      const review = await prisma.review.create({
+        data: {
+          userId,
+          productId,
+          rating,
+          comment,
+        },
+      });
+      return review;
+    } catch (error) {
+      console.error("Error creating review:", error);
+      throw new Error("Failed to submit review.");
+    }
+  }
+
+  /**
+   * Updates an existing review.
+   * @param reviewId The ID of the review to update.
+   * @param data The data to update (rating and/or comment).
+   * @returns The updated review object.
+   */
+  static async updateReview(reviewId: string, data: { rating?: number; comment?: string }) {
+    try {
+      const updatedReview = await prisma.review.update({
+        where: { id: reviewId },
+        data: {
+          rating: data.rating,
+          comment: data.comment,
+          updatedAt: new Date(), // Update timestamp
+        },
+      });
+      return updatedReview;
+    } catch (error) {
+      console.error(`Error updating review ${reviewId}:`, error);
+      // Handle specific Prisma errors, e.g., P2025 if review not found
+      if ((error as any).code === 'P2025') {
+        throw new Error("Review not found.");
+      }
+      throw new Error("Failed to update review.");
+    }
+  }
+
+  /**
+   * Deletes a review by its ID.
+   * @param reviewId The ID of the review to delete.
+   * @returns The deleted review object.
+   */
+  static async deleteReview(reviewId: string) {
+    try {
+      const deletedReview = await prisma.review.delete({
+        where: { id: reviewId },
+      });
+      return deletedReview;
+    } catch (error) {
+      console.error(`Error deleting review ${reviewId}:`, error);
+      if ((error as any).code === 'P2025') {
+        throw new Error("Review not found.");
+      }
+      throw new Error("Failed to delete review.");
+    }
+  }
 }

@@ -2,6 +2,19 @@
 // src/lib/database/order.service.ts
 import { prisma } from "@/lib/prisma";
 import { OrderStatus } from "@/generated/prisma"; // Import OrderStatus enum
+import { supabase } from "@/lib/storage/supabase"; // Import supabase client
+
+// Helper function to get public URL for an image filename
+function getPublicImageUrl(imageName: string): string {
+  if (!imageName) return `https://placehold.co/80x80/E0E0E0/0D171C?text=No+Image`; // Robust fallback
+  // If the image name is already a full URL (e.g., from external source), use it directly
+  if (imageName.startsWith('http://') || imageName.startsWith('https://')) {
+    return imageName;
+  }
+  // Otherwise, get the public URL from Supabase storage
+  const { data } = supabase.storage.from("product-images").getPublicUrl(imageName);
+  return data.publicUrl || `https://placehold.co/80x80/E0E0E0/0D171C?text=No+Image`; // Robust fallback
+}
 
 // Helper function to convert Decimal fields in product to numbers
 function formatProductPrices(product: any) {
@@ -13,13 +26,30 @@ function formatProductPrices(product: any) {
   };
 }
 
-// Helper function to format order items, including product prices
+// Helper function to format product data, including prices and image URLs
+function formatProductForClient(product: any) {
+  if (!product) return product;
+
+  const formattedProduct = formatProductPrices(product);
+
+  // CRITICAL FIX: Transform image filenames to full public URLs here
+  const formattedImages = Array.isArray(product.images)
+    ? product.images.map((img: string) => getPublicImageUrl(img))
+    : [];
+
+  return {
+    ...formattedProduct,
+    images: formattedImages, // Now contains full public URLs
+  };
+}
+
+// Helper function to format order items, including product prices and image URLs
 function formatOrderItemForClient(item: any) {
   if (!item) return item;
   return {
     ...item,
     price: item.price ? parseFloat(item.price.toString()) : 0, // Convert order item price
-    product: formatProductPrices(item.product), // Recursively format product prices
+    product: formatProductForClient(item.product), // Recursively format product prices AND images
   };
 }
 
@@ -73,16 +103,15 @@ export class OrderService {
 
   /**
    * Retrieves all orders for a specific user, including order items and product details.
-   * Converts Decimal types to numbers for client-side compatibility.
+   * Converts Decimal types to numbers and image filenames to full URLs for client-side compatibility.
    * @param userId The ID of the user.
-   * @returns An array of order objects with prices as numbers, regardless of status.
+   * @returns An array of order objects with prices as numbers and image URLs.
    */
   static async getAllUserOrdersWithProducts(userId: string) {
     try {
       const orders = await prisma.order.findMany({
         where: {
           userId: userId,
-          // No status filter here, fetches all orders
         },
         include: {
           orderItems: {
@@ -92,19 +121,19 @@ export class OrderService {
                   id: true,
                   title: true,
                   slug: true,
-                  images: true,
-                  price: true,     // Include original price
-                  salePrice: true, // Include sale price
+                  images: true, // Select images (filenames)
+                  price: true,
+                  salePrice: true,
                 },
               },
             },
           },
         },
         orderBy: {
-          createdAt: 'desc', // Order by most recent order first
+          createdAt: 'desc',
         },
       });
-      // Format the fetched orders to convert Decimal to number
+      // Format the fetched orders to convert Decimal to number AND image filenames to URLs
       return orders.map(formatOrderForClient);
     } catch (error) {
       console.error("Error fetching all user orders with products:", error);
@@ -114,17 +143,16 @@ export class OrderService {
 
   /**
    * Retrieves only delivered orders for a specific user, including order items and product details.
-   * This method is kept for specific needs where only delivered orders are required.
-   * Converts Decimal types to numbers for client-side compatibility.
+   * Converts Decimal types to numbers and image filenames to full URLs for client-side compatibility.
    * @param userId The ID of the user.
-   * @returns An array of delivered order objects with prices as numbers.
+   * @returns An array of delivered order objects with prices as numbers and image URLs.
    */
   static async getDeliveredOrdersWithProducts(userId: string) {
     try {
       const orders = await prisma.order.findMany({
         where: {
           userId: userId,
-          status: "DELIVERED", // Only fetch delivered orders
+          status: "DELIVERED",
         },
         include: {
           orderItems: {
@@ -134,19 +162,19 @@ export class OrderService {
                   id: true,
                   title: true,
                   slug: true,
-                  images: true,
-                  price: true,     // Include original price
-                  salePrice: true, // Include sale price
+                  images: true, // Select images (filenames)
+                  price: true,
+                  salePrice: true,
                 },
               },
             },
           },
         },
         orderBy: {
-          createdAt: 'desc', // Order by most recent order first
+          createdAt: 'desc',
         },
       });
-      // Format the fetched orders to convert Decimal to number
+      // Format the fetched orders to convert Decimal to number AND image filenames to URLs
       return orders.map(formatOrderForClient);
     } catch (error) {
       console.error("Error fetching delivered orders with products:", error);
@@ -156,7 +184,6 @@ export class OrderService {
 
   /**
    * Updates the status of a specific order.
-   * This method would typically be called by an admin panel or a webhook.
    * @param orderId The ID of the order to update.
    * @param newStatus The new status to set for the order.
    * @returns The updated order.

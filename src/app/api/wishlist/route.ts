@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { WishlistService } from "@/lib/database/wishlist.service"; // Import your new service
 import { supabase } from "@/lib/storage/supabase"; // Import supabase client for image URLs
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from 'next/cache'; // Import revalidatePath
 
 // Helper function to get public URL for an image filename (re-used)
 function getPublicImageUrl(imageName: string): string {
@@ -102,6 +103,12 @@ export async function POST(request: Request) {
     const product = await prisma.product.findUnique({ where: { id: productId } });
     const formattedProduct = product ? formatProductForClient(product) : null;
 
+    // Revalidate paths that display wishlist data
+    revalidatePath('/account/wishlist'); // The actual wishlist page
+    revalidatePath('/account'); // The main account page (if it shows wishlist count)
+    // You might also need to revalidate the product page if it shows "Add to Wishlist" status
+    // revalidatePath(`/products/${product?.slug}`); // Requires product slug
+
     return NextResponse.json({ success: true, message: "Product added to wishlist.", data: { ...wishlistItem, product: formattedProduct } }, { status: 200 });
   } catch (error) {
     console.error("[API/WISHLIST/POST] Error adding to wishlist:", error);
@@ -135,6 +142,12 @@ export async function DELETE(request: Request) {
     }
 
     await WishlistService.removeFromWishlist(session.user.id, productId);
+
+    // Revalidate paths that display wishlist data
+    revalidatePath('/account/wishlist'); // The actual wishlist page
+    revalidatePath('/account'); // The main account page (if it shows wishlist count)
+    // You might also need to revalidate the product page if it shows "Add to Wishlist" status
+    // revalidatePath(`/products/${product?.slug}`); // Requires product slug
 
     return NextResponse.json({ success: true, message: "Product removed from wishlist." }, { status: 200 });
   } catch (error) {

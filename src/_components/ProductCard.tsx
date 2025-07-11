@@ -6,12 +6,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Heart, Eye, ShoppingCart } from 'lucide-react';
+import { Heart, Eye, ShoppingCart, Loader2 } from 'lucide-react'; // Added Loader2 for loading state
 import { Button } from "@/_components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession } from 'next-auth/react'; // To check authentication status
 import { useRouter } from 'next/navigation'; // For refreshing the page/header
+import { toast } from 'react-hot-toast'; // For notifications
 // @ts-ignore
 import ColorThief from "colorthief";
 
@@ -24,28 +25,28 @@ interface Product {
   id: string;
   title: string;
   slug: string;
-  description?: string | null; // Made optional as per your schema
+  description?: string | null;
   price: number;
   salePrice?: number | null;
-  saleStart?: string | null; // Made optional
-  saleEnd?: string | null; // Made optional
-  isFlashSale?: boolean; // Made optional
+  saleStart?: string | null;
+  saleEnd?: string | null;
+  isFlashSale?: boolean;
   itemsSold?: number | null;
   itemLimit?: number | null;
   discountPercentage?: number | null;
   images: string[]; // Now expected to contain full public URLs
-  brand?: string | null; // Made optional
-  width?: number | null; // Changed to number
-  height?: number | null; // Changed to number
+  brand?: string | null;
+  width?: number | null;
+  height?: number | null;
   stock: number;
-  isActive?: boolean; // Made optional
-  createdAt?: string; // Made optional
-  updatedAt?: string; // Made optional
-  createdById?: string; // Made optional
-  categoryId?: string; // Made optional
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  createdById?: string;
+  categoryId?: string;
   timeLeftMs?: number | null;
   rating?: number | null;
-  _count?: ProductCounts; // Made optional
+  _count?: ProductCounts;
 }
 
 interface ProductCardProps {
@@ -103,22 +104,29 @@ const TimerBadge = ({ timeLeftMs }: { timeLeftMs: number }) => {
 const WishlistIcon = ({
   isWishlisted,
   onClick,
+  isUpdating, // New prop for loading state
 }: {
   isWishlisted: boolean;
   onClick: () => void;
+  isUpdating: boolean;
 }) => (
   <button
     onClick={onClick}
     className="bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110"
     aria-label="Add to wishlist"
+    disabled={isUpdating} // Disable button when updating
   >
-    <Heart
-      className={`w-4 h-4 transition-colors duration-200 ${
-        isWishlisted
-          ? "fill-(--color-primary) text-(--color-primary)"
-          : "text-gray-600 hover:text-(--color-primary)"
-      }`}
-    />
+    {isUpdating ? (
+      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+    ) : (
+      <Heart
+        className={`w-4 h-4 transition-colors duration-200 ${
+          isWishlisted
+            ? "fill-(--color-primary) text-(--color-primary)"
+            : "text-gray-600 hover:text-(--color-primary)"
+        }`}
+      />
+    )}
   </button>
 );
 
@@ -138,13 +146,15 @@ const ActionButtons = ({
   isWishlisted,
   onWishlistClick,
   onQuickViewClick,
+  isWishlistUpdating, // Pass loading state
 }: {
   isWishlisted: boolean;
   onWishlistClick: () => void;
   onQuickViewClick?: () => void;
+  isWishlistUpdating: boolean;
 }) => (
   <div className="absolute top-3 right-3 flex flex-col space-y-2 z-20">
-    <WishlistIcon isWishlisted={isWishlisted} onClick={onWishlistClick} />
+    <WishlistIcon isWishlisted={isWishlisted} onClick={onWishlistClick} isUpdating={isWishlistUpdating} />
     <QuickViewIcon onClick={onQuickViewClick} />
   </div>
 );
@@ -159,19 +169,14 @@ const ProductImage = ({
   variant: string;
   isHovered: boolean;
 }) => {
-  // publicURL state and fetchImageUrl logic are removed.
-  // The image source will now come directly from product.images[0]
   const [bgColor, setBgColor] = useState<string>("rgb(243, 244, 246)"); // Default light gray background
   const imgRef = useRef<HTMLImageElement>(null);
 
   const handleImageLoad = useCallback(() => {
-    // Ensure imgRef.current is an HTMLImageElement and ColorThief is available
     if (imgRef.current && typeof window !== 'undefined' && typeof ColorThief !== 'undefined') {
       try {
-        // Create a temporary image element to avoid CORS issues with ColorThief if the image is from a different origin
-        // This is important if your Supabase images are on a different domain than your app.
         const tempImg = new window.Image();
-        tempImg.crossOrigin = 'Anonymous';
+        tempImg.crossOrigin = 'Anonymous'; // Essential for CORS if image is from different origin
         tempImg.src = imgRef.current.src;
 
         tempImg.onload = () => {
@@ -181,7 +186,7 @@ const ProductImage = ({
             setBgColor(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
           } catch (err) {
             console.error("Color extraction failed:", err);
-            setBgColor("rgb(243, 244, 246)"); // Fallback on error
+            setBgColor("rgb(243, 244, 246)");
           }
         };
 
@@ -202,7 +207,7 @@ const ProductImage = ({
 
   const imageUrl = (product.images && product.images.length > 0)
     ? product.images[0]
-    : "/placeholder.svg";
+    : `https://placehold.co/${variant === "large" ? "250x250" : "200x200"}/E0E0E0/0D171C?text=No+Image`; // Robust fallback
 
   return (
     <div
@@ -219,10 +224,8 @@ const ProductImage = ({
         alt={product.title || "Product image"}
         onLoad={handleImageLoad}
         onError={() => {
-          // Fallback for image display if the URL itself fails to load
           console.error("Image display failed for:", imageUrl);
-          // Optionally set a local fallback image if the provided URL fails
-          if (imgRef.current) imgRef.current.src = "/placeholder.svg";
+          if (imgRef.current) imgRef.current.src = `https://placehold.co/${variant === "large" ? "250x250" : "200x200"}/E0E0E0/0D171C?text=No+Image`;
           setBgColor("rgb(243, 244, 246)");
         }}
         className={`object-contain w-full h-full p-4 transition-transform duration-300 ${
@@ -290,8 +293,7 @@ const AddToCartButton = ({
   onAddToCart: (e: React.MouseEvent) => void;
   product: Product;
   isAddingToCart: boolean;
-  addToCartMessage: { type: 'success' | 'error', text: string } | null;
-}) => {
+}) => { // Removed addToCartMessage from props as it's handled by toast
   return (
     <>
       <Button
@@ -311,18 +313,6 @@ const AddToCartButton = ({
           </>
         )}
       </Button>
-
-      {/* Add to Cart Message */}
-      {/* {addToCartMessage && (
-        <div className={`mt-2 p-2 text-xs rounded-md flex items-center gap-1 ${
-          addToCartMessage.type === 'success'
-            ? 'bg-(--color-success-bg) text-(--color-success) border border-(--color-success)'
-            : 'bg-(--color-error-bg) text-(--color-error) border border-(--color-error)'
-        }`}>
-          {addToCartMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-          <span>{addToCartMessage.text}</span>
-        </div>
-      )} */}
     </>
   );
 };
@@ -346,13 +336,11 @@ const ProductContent = ({
   product,
   onAddToCart,
   isAddingToCart,
-  addToCartMessage,
 }: {
   product: ProductCardProps["product"];
   onAddToCart: (e: React.MouseEvent) => void;
   isAddingToCart: boolean;
-  addToCartMessage: { type: 'success' | 'error', text: string } | null;
-}) => (
+}) => ( // Removed addToCartMessage from props
   <div className="p-4 space-y-3">
     <h3 className="font-medium text-gray-900 text-sm leading-tight hover:text-blue-500 transition-colors duration-200 line-clamp-2">
       {product.title}
@@ -372,17 +360,10 @@ const ProductContent = ({
       </div>
     )}
 
-    {/* {product.discountPercentage !== null && product.discountPercentage !== undefined && (
-      <div className="text-xs text-green-600 font-semibold">
-        {product.discountPercentage}% Off!
-      </div>
-    )} */}
-
     <AddToCartButton
       onAddToCart={onAddToCart}
       product={product}
       isAddingToCart={isAddingToCart}
-      addToCartMessage={addToCartMessage}
     />
   </div>
 );
@@ -394,41 +375,96 @@ export default function ProductCard({
   variant = "default",
 }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isWishlistUpdating, setIsWishlistUpdating] = useState(false); // New state for wishlist loading
   const [isHovered, setIsHovered] = useState(false);
-  const [addToCartMessage, setAddToCartMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  const { status } = useSession();
+  const { data: session, status: authStatus } = useSession(); // Get session data and status
   const router = useRouter();
 
+  // Fetch initial wishlist status
+  useEffect(() => {
+    const fetchWishlistStatus = async () => {
+      if (authStatus === "authenticated" && session?.user?.id) {
+        try {
+          const response = await fetch("/api/wishlist");
+          if (!response.ok) {
+            throw new Error("Failed to fetch wishlist status.");
+          }
+          const data = await response.json();
+          const wishlistedItems = data.data || [];
+          const productInWishlist = wishlistedItems.some((item: any) => item.productId === product.id);
+          setIsWishlisted(productInWishlist);
+        } catch (error) {
+          console.error("Error fetching wishlist status:", error);
+          // Don't show toast for this, it's a background fetch
+        }
+      } else {
+        setIsWishlisted(false); // Not authenticated, so not wishlisted
+      }
+    };
 
-  const handleWishlistClick = () => {
-    setIsWishlisted(!isWishlisted);
-    console.log(`${isWishlisted ? "Removed from" : "Added to"} wishlist:`, product.title);
+    fetchWishlistStatus();
+  }, [authStatus, product.id, session?.user?.id]); // Re-run when auth status or product ID changes
+
+  const handleWishlistClick = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigating to product detail page
+    e.stopPropagation(); // Stop event propagation if clicked on button within link
+
+    if (authStatus === "unauthenticated") {
+      toast.error('Please log in to manage your wishlist.');
+      return;
+    }
+
+    setIsWishlistUpdating(true);
+    try {
+      const method = isWishlisted ? "DELETE" : "POST";
+      const response = await fetch("/api/wishlist", {
+        method: method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to ${isWishlisted ? "remove from" : "add to"} wishlist.`);
+      }
+
+      // Toggle wishlist status locally
+      setIsWishlisted(!isWishlisted);
+      toast.success(isWishlisted ? `Removed ${product.title} from wishlist!` : `Added ${product.title} to wishlist!`);
+      router.refresh(); // Revalidate data that might depend on wishlist status (e.g., header count, wishlist page)
+
+    } catch (err: any) {
+      console.error("Error updating wishlist:", err);
+      toast.error(err.message || "An unexpected error occurred with wishlist.");
+    } finally {
+      setIsWishlistUpdating(false);
+    }
   };
 
-  const handleQuickViewClick = () => {
+  const handleQuickViewClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigating to product detail page
+    e.stopPropagation(); // Stop event propagation if clicked on button within link
     console.log("Quick view:", product.title);
+    // Implement quick view modal logic here
   };
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigating to product detail page
     e.stopPropagation(); // Stop event propagation if clicked on button within link
 
-    setAddToCartMessage(null); // Clear previous messages
     setIsAddingToCart(true);
 
-    if (status === "unauthenticated") {
-      setAddToCartMessage({ type: 'error', text: 'Please log in to add items to your cart.' });
+    if (authStatus === "unauthenticated") {
+      toast.error('Please log in to add items to your cart.');
       setIsAddingToCart(false);
-      setTimeout(() => setAddToCartMessage(null), 3000); // Clear message after 3 seconds
       return;
     }
 
     if (product.stock === 0) {
-      setAddToCartMessage({ type: 'error', text: 'This product is out of stock.' });
+      toast.error('This product is out of stock.');
       setIsAddingToCart(false);
-      setTimeout(() => setAddToCartMessage(null), 3000); // Clear message after 3 seconds
       return;
     }
 
@@ -439,47 +475,36 @@ export default function ProductCard({
         body: JSON.stringify({ productId: product.id, quantity: 1 }), // Add 1 item by default
       });
 
-      // --- START OF MODIFICATION ---
-      // Check if the response is JSON before parsing
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        const errorText = await response.text(); // Read as text to see the HTML
+        const errorText = await response.text();
         console.error("Non-JSON response from /api/cart:", errorText);
         throw new Error(`Server responded with non-JSON content (Status: ${response.status}). Check server logs for details.`);
       }
-      // --- END OF MODIFICATION ---
 
-      const json = await response.json(); // Now this should only run if content-type is JSON
+      const json = await response.json();
 
       if (!response.ok) {
         throw new Error(json.message || "Failed to add product to cart.");
       }
 
-      setAddToCartMessage({ type: 'success', text: `${product.title} added to cart!` });
+      toast.success(`${product.title} added to cart!`);
       router.refresh(); // Trigger a re-fetch of session data (which includes cart count in header)
 
     } catch (err: any) {
       console.error("Error adding to cart from card:", err);
-      setAddToCartMessage({ type: 'error', text: err.message || "An unexpected error occurred." });
+      toast.error(err.message || "An unexpected error occurred.");
     } finally {
       setIsAddingToCart(false);
-      // Clear message after a few seconds
-      setTimeout(() => setAddToCartMessage(null), 3000);
     }
   };
 
-  // Determine if a timer or discount badge should be shown
-  // const hasTimer = showTimer && product.timeLeftMs !== null && product.timeLeftMs !== undefined && product.timeLeftMs > 0;
   const hasDiscount = product.discountPercentage !== null && product.discountPercentage !== undefined && product.discountPercentage > 0;
-
-  // Calculate the top offset for the timer if both are present
-  // const timerOffsetTop = hasDiscount ? 40 : 2; // If discount is there, push timer down
-
 
   return (
     <div
       className={`relative ${
-        variant === "large" ? "w-full max-w-sm" : "w-full min-w-(250px) max-w-(280px)" // Fixed Tailwind CSS syntax
+        variant === "large" ? "w-full max-w-sm" : "w-full min-w-[250px] max-w-[280px]" // Fixed Tailwind CSS syntax
       } mx-auto`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -496,9 +521,15 @@ export default function ProductCard({
             )}
             <ActionButtons
               isWishlisted={isWishlisted}
+              onWishlistClick={() => handleWishlistClick}
+              onQuickViewClick={() => handleQuickViewClick}
+              isWishlistUpdating={isWishlistUpdating} // Pass loading state
+            />
+            {/* <ActionButtons
+              isWishlisted={isWishlisted}
               onWishlistClick={handleWishlistClick}
               onQuickViewClick={handleQuickViewClick}
-            />
+            /> */}
             <ProductImage product={product} variant={variant} isHovered={isHovered} />
           </div>
         </Link>
@@ -507,7 +538,6 @@ export default function ProductCard({
           product={product}
           onAddToCart={handleAddToCart}
           isAddingToCart={isAddingToCart}
-          addToCartMessage={addToCartMessage}
         />
 
         <div

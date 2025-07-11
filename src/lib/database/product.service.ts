@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/lib/database/product.service.ts
-import { prisma } from "@/lib/prisma"; // Assuming your Prisma client is exported here
+import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/storage/supabase"; // Import supabase client
+import { WishlistService } from "./wishlist.service"; // Import WishlistService
 
 function slugify(text: string) {
   return text
@@ -9,27 +11,84 @@ function slugify(text: string) {
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replace(/^-|-$/g, "");
 }
 
-// Define an interface for the incoming data, which might have string dates
-// This makes your code more type-safe and readable.
+// Helper function to get public URL for an image filename
+function getPublicImageUrl(imageName: string): string {
+  if (!imageName) return `https://placehold.co/400x300/E0E0E0/0D171C?text=No+Image`; // Robust fallback
+  if (imageName.startsWith('http://') || imageName.startsWith('https://')) {
+    return imageName;
+  }
+  const { data } = supabase.storage.from("product-images").getPublicUrl(imageName);
+  return data.publicUrl || `https://placehold.co/400x300/E0E0E0/0D171C?text=No+Image`; // Robust fallback
+}
+
+// Helper function to format product data, including prices, dimensions, and image URLs
+function formatProductForClient(product: any) {
+  if (!product) return product;
+
+  // Convert Decimal fields to numbers
+  const formattedProduct = {
+    ...product,
+    price: product.price ? parseFloat(product.price.toString()) : 0,
+    salePrice: product.salePrice ? parseFloat(product.salePrice.toString()) : null,
+    width: product.width ? parseFloat(product.width.toString()) : null,
+    height: product.height ? parseFloat(product.height.toString()) : null,
+  };
+
+  // Transform image filenames to full public URLs
+  const formattedImages = Array.isArray(product.images)
+    ? product.images.map((img: string) => getPublicImageUrl(img))
+    : [];
+
+  // Calculate discount percentage
+  let calculatedDiscountPercentage: number | null = null;
+  if (formattedProduct.salePrice !== null && formattedProduct.salePrice < formattedProduct.price && formattedProduct.price > 0) {
+    calculatedDiscountPercentage = parseFloat(((formattedProduct.price - formattedProduct.salePrice) / formattedProduct.price * 100).toFixed(2));
+  }
+
+  // Calculate timeLeftMs for flash sales
+  let timeLeftMs: number | null = null;
+  if (formattedProduct.isFlashSale && formattedProduct.saleEnd) {
+    const saleEndDate = new Date(formattedProduct.saleEnd);
+    const now = new Date();
+    timeLeftMs = saleEndDate.getTime() - now.getTime();
+    if (timeLeftMs < 0) timeLeftMs = 0; // Sale has ended
+  }
+
+  // Calculate average rating
+  const totalRating = product.reviews?.reduce((sum: number, r: any) => sum + r.rating, 0) || 0;
+  const averageRating = product.reviews?.length > 0
+    ? parseFloat((totalRating / product.reviews.length).toFixed(1))
+    : null;
+
+  return {
+    ...formattedProduct,
+    images: formattedImages, // Now contains full public URLs
+    discountPercentage: calculatedDiscountPercentage,
+    timeLeftMs: timeLeftMs,
+    rating: averageRating,
+    reviews: undefined, // Exclude raw reviews array from the main product object
+  };
+}
+
+// Define an interface for the incoming data, which might have string dates and dimensions
 interface ProductCreateInput {
   title: string;
   description?: string;
-  price: string; // Assuming price comes as string from form
-  salePrice?: string; // Assuming salePrice comes as string from form
-  saleStart?: string; // These will be strings from the form
-  saleEnd?: string;   // These will be strings from the form
+  price: string;
+  salePrice?: string;
+  saleStart?: string;
+  saleEnd?: string;
   brand: string;
   width?: string;
   height?: string;
-  stock: string; // Assuming stock comes as string from form
+  stock: string;
   categoryId: string;
   createdById: string;
-  images: string[]; // Assuming image names/paths are strings in an array
-  // Add other fields as they exist in your form/Product model
-  isFlashSale?: boolean; // Ensure this is also handled if it's part of the form
+  images: string[];
+  isFlashSale?: boolean;
   isActive?: boolean;
 }
 
@@ -40,24 +99,20 @@ export class ProductService {
    * @param data The product data.
    * @returns The created product.
    */
-  // Change 'any' to your new interface for better type safety
   static async createProduct(data: ProductCreateInput) {
     const slug = slugify(data.title);
 
-    // Convert string numeric values to numbers
     const priceNum = parseFloat(data.price);
-    const salePriceNum = data.salePrice ? parseFloat(data.salePrice) : undefined; // Optional
+    const salePriceNum = data.salePrice ? parseFloat(data.salePrice) : undefined;
     const stockNum = parseInt(data.stock, 10);
 
-    // Convert saleStart and saleEnd strings to Date objects
-    // If they are optional in your schema, handle null/undefined correctly.
-    // If they are mandatory, you might want to throw an error if they're missing.
-    const saleStartDate = data.saleStart ? new Date(data.saleStart) : undefined; // Or null if your schema allows null
-    const saleEndDate = data.saleEnd ? new Date(data.saleEnd) : undefined;     // Or null if your schema allows null
+    const widthNum = data.width ? parseFloat(data.width) : undefined;
+    const heightNum = data.height ? parseFloat(data.height) : undefined;
 
-    // Ensure images is correctly formatted if it's a JSON field or similar
+    const saleStartDate = data.saleStart ? new Date(data.saleStart) : undefined;
+    const saleEndDate = data.saleEnd ? new Date(data.saleEnd) : undefined;
+
     const imagesArray = Array.isArray(data.images) ? data.images : (data.images ? [data.images] : []);
-
 
     return await prisma.product.create({
       data: {
@@ -68,55 +123,98 @@ export class ProductService {
         saleStart: saleStartDate,
         saleEnd: saleEndDate,
         brand: data.brand,
-        width: data.width, // Assuming width/height are strings for now, convert if needed
-        height: data.height,
+        width: widthNum !== undefined ? widthNum.toString() : undefined,
+        height: heightNum !== undefined ? heightNum.toString() : undefined,
         stock: stockNum,
         categoryId: data.categoryId,
         createdById: data.createdById,
-        images: imagesArray, // Pass as an array
+        images: imagesArray,
         slug,
-        isFlashSale: data.isFlashSale ?? false, // Default to false if not provided
-        isActive: data.isActive ?? true, // Default to true if not provided
+        isFlashSale: data.isFlashSale ?? false,
+        isActive: data.isActive ?? true,
       },
     });
   }
 
   /**
-   * Finds a product by its slug.
-   * @param slug The product slug.
-   * @returns The product or null if not found.
+   * Finds a product by its slug, including related data and wishlist status for a given user.
+   * This is the method to use for the product detail page.
+   * @param slug The slug of the product.
+   * @param userId Optional user ID to check wishlist status.
+   * @returns The product object with `isWishlistedByUser` or null if not found.
    */
-  static async findProductBySlug(slug: string) {
-    return await prisma.product.findUnique({
-      where: { slug },
-      include: {
-        category: { select: { title: true } },
-        _count: {
-          select: { reviews: true, wishlists: true }
-        }
+  static async findProductBySlug(slug: string, userId?: string) { // Renamed to findProductBySlug and added userId
+    try {
+      const product = await prisma.product.findUnique({
+        where: { slug: slug },
+        include: {
+          category: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+            },
+          },
+          _count: {
+            select: {
+              reviews: true,
+              wishlists: true,
+            },
+          },
+          reviews: { // Include reviews to calculate average rating
+            select: { rating: true },
+          },
+        },
+      });
+
+      if (!product) {
+        return null;
       }
-    });
+
+      // Determine if the product is wishlisted by the user
+      let isWishlistedByUser = false;
+      if (userId) {
+        isWishlistedByUser = await WishlistService.isProductWishlisted(userId, product.id);
+      }
+
+      // Format product data for client (prices, images, dimensions, calculated fields)
+      const formattedProduct = formatProductForClient(product);
+
+      return {
+        ...formattedProduct,
+        isWishlistedByUser: isWishlistedByUser, // Add wishlist status
+      };
+
+    } catch (error) {
+      console.error(`Error finding product by slug '${slug}':`, error);
+      throw new Error("Failed to retrieve product details.");
+    }
   }
 
   /**
    * Finds all active products. Can be filtered by category.
+   * This method is perfect for your new /products page.
    * @param categoryId Optional category ID to filter by.
    * @returns An array of products.
    */
   static async findAllProducts(categoryId?: string) {
-    return await prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         isActive: true,
         ...(categoryId && { categoryId: categoryId }),
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "desc" }, // Default sorting for general products
       include: {
-        category: { select: { title: true } },
+        category: { select: { id: true, title: true, slug: true } },
         _count: {
           select: { reviews: true, wishlists: true }
-        }
+        },
+        reviews: { // Include reviews to calculate average rating
+          select: { rating: true },
+        },
       }
     });
+    return products.map(formatProductForClient); // Format all products
   }
 
   /**
@@ -126,22 +224,26 @@ export class ProductService {
    */
   static async findFlashSaleProducts(categoryId?: string) {
     const now = new Date();
-    return await prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         isFlashSale: true,
         isActive: true,
-        saleStart: { lte: now }, // Sale started
-        saleEnd: { gte: now }, // Sale has not ended
+        saleStart: { lte: now },
+        saleEnd: { gte: now },
         ...(categoryId && { categoryId: categoryId }),
       },
-      orderBy: { saleEnd: "asc" }, // Order by earliest end date
+      orderBy: { saleEnd: "asc" },
       include: {
-        category: { select: { title: true } },
+        category: { select: { id: true, title: true, slug: true } },
         _count: {
           select: { reviews: true, wishlists: true }
-        }
+        },
+        reviews: { // Include reviews to calculate average rating
+          select: { rating: true },
+        },
       }
     });
+    return products.map(formatProductForClient); // Format all products
   }
 
   /**
@@ -149,33 +251,35 @@ export class ProductService {
    * @param limit The maximum number of products to return.
    * @returns An array of latest products.
    */
-  static async findLatestProducts(limit: number = 8) { // CHANGED: Default limit to 8
-    return await prisma.product.findMany({
+  static async findLatestProducts(limit: number = 8) {
+    const products = await prisma.product.findMany({
       where: {
         isActive: true,
       },
-      orderBy: { stock: "desc" }, // CHANGED: Order by stock from greatest to smallest
+      orderBy: { stock: "desc" },
       take: limit,
       include: {
-        category: { select: { title: true, slug: true, id: true } }, // Include slug and id for category
+        category: { select: { id: true, title: true, slug: true } },
         _count: {
           select: { reviews: true, wishlists: true }
-        }
+        },
+        reviews: { // Include reviews to calculate average rating
+          select: { rating: true },
+        },
       }
     });
+    return products.map(formatProductForClient); // Format all products
   }
 
   /**
-   * Counts all categories in the database.
-   * @returns The total count of categories.
+   * Counts all active products in the database.
+   * @returns The total count of active products.
    */
   static async countAllProducts(): Promise<number> {
-    return await prisma.product.count();
+    return await prisma.product.count({
+      where: {
+        isActive: true,
+      },
+    });
   }
-
-  // You can keep `findAll` if you need a truly unfiltered list for admin purposes,
-  // but for public facing API, `findAllProducts` (which filters by isActive) is better.
-  // If `findAll` is only for admin, consider moving it to an admin-specific service.
-  // For now, let's assume `findAllProducts` replaces the previous `findAll` for client-facing.
-  // If you still need the *very* raw `findAll`, keep it or rename `findAllProducts` to something like `findActiveProducts`.
 }

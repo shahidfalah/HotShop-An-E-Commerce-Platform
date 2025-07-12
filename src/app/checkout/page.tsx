@@ -138,7 +138,7 @@ export default function CheckoutPage() {
     return sum + (effectivePrice * item.quantity);
   }, 0);
 
-  const discount: number = 15.00; // Example static discount from your image
+  const discount: number = 0; // Example static discount from your image
   const deliveryFee: number = 0; // Free delivery as per your image
 
   const total = subtotal - discount + deliveryFee;

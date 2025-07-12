@@ -1,14 +1,12 @@
 "use client";
 
-import React from 'react';
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSession } from "next-auth/react";
 import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Search, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react'; // Keep Menu, X, Search as they are used
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 const NavLinks = () => {
     const pathname = usePathname();
@@ -38,7 +36,7 @@ const NavLinks = () => {
             prevLinks.map(link => ({
                 ...link,
                 active: pathname === link.href || 
-                       (link.href !== '/' && pathname.startsWith(link.href))
+                               (link.href !== '/' && pathname.startsWith(link.href))
             }))
         );
     }, [pathname]);
@@ -87,44 +85,16 @@ const NavBarDesktop = () => {
                     <NavLinks />
                 </ul>
             </div>
-            <MetaNav/>
+            <MetaNav desktop={true} /> {/* Pass prop to indicate desktop view */}
         </div>
     );
 };
 
 const NavBarMobile = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const { status } = useSession();
-    const isAuthenticated = status === "authenticated";
-    const [cartItemCount, setCartItemCount] = useState(0); // State for mobile cart count
-
-    const fetchCartCount = useCallback(async () => {
-        if (isAuthenticated) {
-            try {
-                const response = await fetch("/api/cart");
-                if (response.ok) {
-                    const items = await response.json();
-                    const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
-                    setCartItemCount(totalCount);
-                } else {
-                    console.error("Failed to fetch mobile cart count:", response.statusText);
-                    setCartItemCount(0);
-                }
-            } catch (error) {
-                console.error("Error fetching mobile cart count:", error);
-                setCartItemCount(0);
-            }
-        } else {
-            setCartItemCount(0);
-        }
-    }, [isAuthenticated]);
-
-    useEffect(() => {
-        fetchCartCount();
-    }, [fetchCartCount]);
     
     return (
-        <div className="bg-white text-(--color-font) border-b border-gray-200 sticky top-0 z-50 border-b border-gray-200">
+        <div className="bg-white text-(--color-font) sticky top-0 z-50 border-b border-gray-200">
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -133,25 +103,10 @@ const NavBarMobile = () => {
                         <h1 className="text-2xl">HotShop</h1>
                     </div>
 
-                    {/* Action Icons of Bag-icon*/}
-                    <div className="flex items-center space-x-4">                        
-                        {isAuthenticated && (
-                            <div className='flex items-center gap-2'>
-                                <Link className="relative" href="/account">
-                                    <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={32} height={32}/>
-                                    <span className="absolute -top-1 -right-[4px] bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                                        2
-                                    </span>
-                                </Link>
-                                <Link className="relative" href="/cart">
-                                    <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={32} height={32}/>
-                                    <span className="absolute -top-1 -right-[4px] bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                                        {cartItemCount}
-                                    </span>
-                                </Link>
-                            </div>
-                        )}
-
+                    {/* Action Icons & Mobile Menu Button */}
+                    <div className="flex items-center space-x-4">
+                        <MetaNav desktop={false} /> {/* Pass prop to indicate mobile view */}
+                        
                         {/* Mobile Menu Button */}
                         <Button
                             variant="ghost"
@@ -168,8 +123,8 @@ const NavBarMobile = () => {
                 {isMobileMenuOpen && (
                     <div className="md:hidden py-4 border-t border-gray-200">
                         <div className="flex flex-col space-y-4">
-                            <MetaNav />
-                            {/* Mobile Navigation */}
+                            {/* MetaNav is already conditionally rendered based on desktop prop */}
+                            {/* Mobile Navigation Links */}
                             <div className="flex flex-col space-y-2">
                                 <NavLinks />
                             </div>
@@ -181,38 +136,54 @@ const NavBarMobile = () => {
     );
 };
 
-const MetaNav = () => {
+const MetaNav = ({ desktop }) => { // Accept desktop prop
     const { data: session, status } = useSession();
-    const profileImage = session?.user.image || "/defaultProfileImage.jpeg";
-    const userName = session?.user.name || "no-name";
+    const profileImage = session?.user?.image || "/defaultProfileImage.jpeg";
+    const userName = session?.user?.name || "no-name";
     const isAuthenticated = status === "authenticated";
-    const [cartItemCount, setCartItemCount] = useState(0); // State for mobile cart count
+    const [cartItemCount, setCartItemCount] = useState(0);
+    const [wishlistItemCount, setWishlistItemCount] = useState(0); // State for wishlist count
 
-    const fetchCartCount = useCallback(async () => {
+    const fetchCounts = useCallback(async () => {
         if (isAuthenticated) {
             try {
-                const response = await fetch("/api/cart");
-                if (response.ok) {
-                    const items = await response.json();
-                    console.log("Cart items:", items)
-                    const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
-                    setCartItemCount(totalCount);
+                // Fetch Cart Count
+                const cartResponse = await fetch("/api/cart");
+                if (cartResponse.ok) {
+                    const cartItems = await cartResponse.json();
+                    const totalCartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+                    setCartItemCount(totalCartCount);
                 } else {
-                    console.error("Failed to fetch mobile cart count:", response.statusText);
+                    console.error("Failed to fetch cart count:", cartResponse.statusText);
                     setCartItemCount(0);
                 }
+
+                // Fetch Wishlist Count
+                const wishlistResponse = await fetch("/api/wishlist");
+                if (wishlistResponse.ok) {
+                    const wishlistItems = await wishlistResponse.json();
+                    // Assuming each wishlist item represents 1 product, so count is just array length
+                    const totalWishlistCount = wishlistItems.data ? wishlistItems.data.length : 0; // Access data property
+                    setWishlistItemCount(totalWishlistCount);
+                } else {
+                    console.error("Failed to fetch wishlist count:", wishlistResponse.statusText);
+                    setWishlistItemCount(0);
+                }
+
             } catch (error) {
-                console.error("Error fetching mobile cart count:", error);
+                console.error("Error fetching counts:", error);
                 setCartItemCount(0);
+                setWishlistItemCount(0);
             }
         } else {
             setCartItemCount(0);
+            setWishlistItemCount(0);
         }
     }, [isAuthenticated]);
 
     useEffect(() => {
-        fetchCartCount();
-    }, [fetchCartCount]);
+        fetchCounts();
+    }, [fetchCounts]); // Depend on fetchCounts to re-run when isAuthenticated changes
 
     if (status === "unauthenticated" || status === "loading") {
         return (
@@ -226,41 +197,48 @@ const MetaNav = () => {
     } else if (status === "authenticated") {
         return (
             <>
-                {/* for desktop */}
-                <div className="hidden md:flex items-center gap-4">
-                    <div className='flex items-center gap-2'>
-                        <Link href="/account">
-                            <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={40} height={40}/>
-                        </Link>
-                        <Link className="relative" href="/cart">
-                            <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={40} height={40}/>
+                {/* Desktop and Mobile Icons (conditionally rendered based on 'desktop' prop) */}
+                <div className={`flex items-center gap-2 ${desktop ? 'hidden md:flex' : 'flex md:hidden'}`}>
+                    <Link className="relative" href="/account/wishlist">
+                        {/* Using Image component with your original SVG for wishlist icon */}
+                        <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={desktop ? 40 : 32} height={desktop ? 40 : 32}/>
+                        {wishlistItemCount > 0 && (
+                            <span className="absolute -top-1 -right-[4px] bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                                {wishlistItemCount}
+                            </span>
+                        )}
+                    </Link>
+                    <Link className="relative" href="/cart">
+                        {/* Using Image component with your original SVG for cart icon */}
+                        <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={desktop ? 40 : 32} height={desktop ? 40 : 32}/>
+                        {cartItemCount > 0 && (
                             <span className="absolute -top-1 -right-[4px] bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
                                 {cartItemCount}
                             </span>
+                        )}
+                    </Link>
+                    {desktop ? (
+                        <Link href="/account">
+                            <Image 
+                                className="ml-2 rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" 
+                                src={profileImage} 
+                                alt="profile-image" 
+                                width={32} 
+                                height={32}
+                            />
                         </Link>
-                    </div>
-                    <Link href="/account">
-                        <Image 
-                            className="ml-2 rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" 
-                            src={profileImage} 
-                            alt="profile-image" 
-                            width={32} 
-                            height={32}
-                        />
-                    </Link>
-                </div>
-                {/* for mobile */}
-                <div className="flex md:hidden items-center gap-2">
-                    <Link href="/account">
-                        <Image 
-                            className="rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" 
-                            src={profileImage} 
-                            alt="profile-image" 
-                            width={32} 
-                            height={32}
-                        />
-                    </Link>
-                    <h3 className='text-sm'>{userName}</h3>
+                    ) : (
+                        <Link href="/account">
+                            <Image 
+                                className="rounded-[50%] border border-(--color-bg-of-icons) hover:border-(--color-bg-of-icons-hover)" 
+                                src={profileImage} 
+                                alt="profile-image" 
+                                width={32} 
+                                height={32}
+                            />
+                        </Link>
+                    )}
+                    {!desktop && <h3 className='text-sm'>{userName}</h3>} {/* Only show username in mobile */}
                 </div>
             </>
         );

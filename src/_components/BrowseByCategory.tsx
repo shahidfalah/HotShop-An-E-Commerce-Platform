@@ -88,7 +88,7 @@ export default function BrowseByCategory({ initialCategories }: { initialCategor
                   : null;
 
                 return (
-                  <Link href={`/categories/${category.slug}`} key={category.id}>
+                  <Link href="/products" key={category.id}>
                     <button
                       onClick={() => setActiveCategory(category.id)}
                       className={`flex-none w-32 h-32 rounded-lg border-2 transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center space-y-2

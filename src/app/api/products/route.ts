@@ -17,75 +17,64 @@ export async function GET(req: NextRequest) {
     const slug = searchParams.get("slug");
     const limitParam = searchParams.get("limit");
 
-    let products: any[] = []; // Initialize as an empty array to ensure consistency
+    let products: any[] = [];
 
-    console.log("==============================API: Request received.");
-    console.log("API: Type:", type);
-    console.log("API: Slug:", slug);
-    console.log("API: CategoryId:", categoryId);
-    console.log("API: Limit:", limitParam);
-    console.log("API: User ID (if authenticated):", userId);
-
-
-    if (slug) { // If a slug is provided, fetch a single product by slug
-      console.log(`API: Fetching single product by slug: ${slug}`);
-      // Pass userId to findProductBySlug to get wishlist status
+    if (slug) {
       const product = await ProductService.findProductBySlug(slug, userId || undefined);
       if (product) {
         products = [product]; // Wrap the single product in an array for consistent mapping
-        console.log("API: Found product by slug:", product.title);
       } else {
         console.log("API: No product found for slug:", slug);
       }
     } else if (type === "isFlashSale") { // Corrected: "isFlashSale" without trailing space
-      console.log("API: Fetching Flash Sale Products...");
+      // console.log("API: Fetching Flash Sale Products...");
       products = await ProductService.findFlashSaleProducts(categoryId || undefined);
-      console.log("API: Fetched Flash Sale Products (type=isFlashSale):", products.length);
+      // console.log("API: Fetched Flash Sale Products (type=isFlashSale):", products.length);
     } else if (type === "latest") {
-      console.log("API: Fetching Latest Products...");
+      // console.log("API: Fetching Latest Products...");
       const limit = parseInt(limitParam || "4", 10);
       products = await ProductService.findLatestProducts(limit);
-      console.log("API: Fetched Latest Products (type=latest):", products.length);
+      // console.log("API: Fetched Latest Products (type=latest):", products.length);
     } else if (type === "discounted") {
-      console.log("API: Processing request for 'discounted' products...");
+      // console.log("API: Processing request for 'discounted' products...");
       const allActiveProducts = await ProductService.findAllProducts(); // findAllProducts now returns formatted products
-      console.log("API: Total active products from findAllProducts() for discounted calc:", allActiveProducts.length);
+      // console.log("API: Total active products from findAllProducts() for discounted calc:", allActiveProducts.length);
 
       const limit = parseInt(limitParam || "8", 10);
 
       const productsWithDiscount = allActiveProducts
         .filter(p => p.discountPercentage && p.discountPercentage > 0); // Filter for actual positive discounts
 
-      console.log("API: Products with calculated positive discounts:", productsWithDiscount.length);
+      // console.log("API: Products with calculated positive discounts:", productsWithDiscount.length);
 
       products = productsWithDiscount
         .sort((a, b) => (b.stock || 0) - (a.stock || 0)) // Sort by stock from biggest to smallest
         .slice(0, limit);
-      console.log(`API: Final 'discounted' products (top ${limit}):`, products.length);
+      // console.log(`API: Final 'discounted' products (top ${limit}):`, products.length);
 
     } else if (type === "bestOffer") {
-      console.log("API: Processing request for 'bestOffer' product...");
+      // console.log("API: Processing request for 'bestOffer' product...");
       const allActiveProducts = await ProductService.findAllProducts(); // findAllProducts now returns formatted products
-      console.log("API: Total active products for bestOffer calc:", allActiveProducts.length);
+      // console.log("API: Total active products for bestOffer calc:", allActiveProducts.length);
 
       const productsWithDiscount = allActiveProducts
         .filter(p => p.discountPercentage && p.discountPercentage > 0);
 
-      console.log("API: Products with calculated positive discounts for bestOffer:", productsWithDiscount.length);
+      // console.log("API: Products with calculated positive discounts for bestOffer:", productsWithDiscount.length);
 
       products = productsWithDiscount
         .sort((a, b) => (b.discountPercentage || 0) - (a.discountPercentage || 0))
         .slice(0, 1);
-      console.log("API: Final 'bestOffer' product (count):", products.length);
+      // console.log("API: Final 'bestOffer' product (count):", products.length);
 
     } else {
       // Default behavior: Fetch all active products (for the new /products page)
-      console.log("API: No specific type or slug. Fetching all active products.");
+      // console.log("API: No specific type or slug. Fetching all active products.");
       products = await ProductService.findAllProducts(categoryId || undefined); // findAllProducts now returns formatted products
-      console.log("API: Fetched All Active Products (default behavior):", products.length);
+      // console.log("API: Fetched All Active Products (default behavior):", products.length);
     }
 
-    console.log("==============================API: Products ready to be sent (count):", products.length);
+    // console.log("==============================API: Products ready to be sent (count):", products.length);
 
     // For single product requests (by slug), return the single product directly, not an array
     if (slug) {

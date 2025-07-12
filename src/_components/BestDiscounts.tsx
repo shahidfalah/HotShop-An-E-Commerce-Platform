@@ -122,7 +122,7 @@ export default function BestDiscounts({ initialProducts }: { initialProducts: Pr
 
         {/* View All Button */}
         <div className="text-center mt-8">
-          <Link href="/flash-sale">
+          <Link href="/products">
             <Button className="bg-(--color-primary) hover:bg-(--color-primary-hover) text-white px-8 py-3" size="lg">
               View All Discounts
             </Button>

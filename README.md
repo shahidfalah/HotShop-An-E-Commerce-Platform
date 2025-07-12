@@ -1,6 +1,6 @@
-# HotShop: A Modern E-Commerce Platform
+# HotShop: An E-Commerce Platform
 
-HotShop is a full-stack e-commerce application built with Next.js 14 (App Router), designed for flash sales and efficient product management. It provides a seamless shopping experience for users and a robust administration panel for store owners.
+HotShop is a full-stack e-commerce application built with Next.js 15 (App Router), designed for flash sales and efficient product management. It provides a seamless shopping experience for users and a robust administration panel for store owners.
 
 ## ✨ Features
 
@@ -13,7 +13,7 @@ HotShop is a full-stack e-commerce application built with Next.js 14 (App Router
   * **Wishlist:** Save products to a personal wishlist.
   * **User Authentication:** Secure login and signup using NextAuth.js (supporting Google OAuth and credentials).
   * **User Account Management:** View order history, manage reviews, and update profile settings.
-  * **Responsive Design:** Optimized for a smooth experience across mobile, tablet, and desktop devices.
+  * **Responsive Design:** Optimized for a smooth experience across mobile, and desktop devices.
   * **Toasts:** User-friendly notifications for actions (e.g., "Product added to cart\!").
 
 **Admin Panel:**
@@ -29,7 +29,7 @@ HotShop is a full-stack e-commerce application built with Next.js 14 (App Router
 
 **Frontend:**
 
-  * **Next.js 14 (App Router):** React framework for building performant web applications with Server Components and Client Components.
+  * **Next.js 15 (App Router):** React framework for building performant web applications with Server Components and Client Components.
   * **React:** JavaScript library for building user interfaces.
   * **TypeScript:** Strongly-typed superset of JavaScript for enhanced code quality and maintainability.
   * **Tailwind CSS:** Utility-first CSS framework for rapid and consistent styling.
@@ -47,7 +47,7 @@ HotShop is a full-stack e-commerce application built with Next.js 14 (App Router
 
 **Deployment:**
 
-  * **Vercel (Recommended):** Ideal for deploying Next.js applications.
+  * **Vercel:** Ideal for deploying Next.js applications.
 
 ## ⚡ Performance Optimizations
 
@@ -94,11 +94,11 @@ DATABASE_URL="postgresql://postgres:[YOUR_DB_PASSWORD]@db.[YOUR_SUPABASE_PROJECT
 
 # Supabase Storage (for images)
 NEXT_PUBLIC_SUPABASE_URL="https://[YOUR_SUPABASE_PROJECT_REF].supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="[YOUR_SUPABASE_ANON_KEY]"
+# Supabase Service Role Key (for server-side privileged operations, keep secret!)
+SUPABASE_SERVICE_ROLE_KEY="[SUPABASE_SERVICE_ROLE_KEY]"
 
 # NextAuth.js
 NEXTAUTH_SECRET="[A_VERY_LONG_RANDOM_STRING_FOR_PRODUCTION]" # Generate with `openssl rand -base64 32` or similar
-NEXTAUTH_URL="http://localhost:3000" # For local development
 
 # Google OAuth (Optional, if you enable Google login)
 GOOGLE_CLIENT_ID="[YOUR_GOOGLE_CLIENT_ID]"
@@ -111,14 +111,15 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000" # For local development
 **Important Notes:**
 
   * **`DATABASE_URL`**: Get this from your Supabase Project Settings -\> Database -\> Connection String. Ensure you use the `prisma` user or a user with full access.
-  * **`NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_ANON_KEY`**: Get these from your Supabase Project Settings -\> API.
+  * **`NEXT_PUBLIC_SUPABASE_URL` & `SUPABASE_SERVICE_ROLE_KEY`**: Get these from your Supabase Project Settings -\> API. The **`ANON_KEY`** is safe to expose to the browser for public reads.
+  * **`SUPABASE_SERVICE_ROLE_KEY`**: **This key is highly privileged and must be kept secret.** It should never be exposed on the client-side. Use it only in server-side code (e.g., API routes, server components) for operations that require bypassing Row Level Security (RLS) or performing administrative tasks.
   * **`NEXTAUTH_SECRET`**: **Crucial for production security.** Generate a strong, random string.
   * **`NEXT_PUBLIC_APP_URL`**: This is used for server-side fetches within API routes. In production, this should be your deployed domain (e.g., `https://your-hotshop-domain.vercel.app`).
 
 ### 4\. Set up Supabase Storage
 
 1.  In your Supabase project, go to **Storage**.
-2.  Create a new bucket named `product-images`.
+2.  Create a new bucket named `product-images`,`category-images`.
 3.  Set its policies to allow public reads (if you want images to be publicly accessible without authentication). A common policy for public read is:
     ```
     CREATE POLICY "Allow public read access" ON storage.objects FOR SELECT USING (bucket_id = 'product-images');
@@ -145,7 +146,7 @@ npm run dev
 yarn dev
 ```
 
-Open [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000) in your browser to see the application.
+Open [http://localhost:3000]
 
 ## 📁 Project Structure (Key Directories)
 
@@ -167,8 +168,9 @@ Open [http://localhost:3000](https://www.google.com/search?q=http://localhost:30
 
 ## 📄 License
 
-This project is open-source and available under the MIT License.
+This project is open-source
 
 ## ✍️ Author
-
-[https://hotshop-ten.vercel.app/]
+Shahid Falah
+If you find this project useful, I hope encourage me to add Future Enhancements to it.
+hope this was useful.

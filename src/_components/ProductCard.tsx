@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/_components/ProductCard.tsx
-/* eslint-disable react-hooks/rules-of-hooks */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 
 "use client";
 
@@ -13,15 +11,13 @@ import Link from "next/link";
 import { useSession } from 'next-auth/react'; // To check authentication status
 import { useRouter } from 'next/navigation'; // For refreshing the page/header
 import { toast } from 'react-hot-toast'; // For notifications
-// @ts-ignore
-import ColorThief from "colorthief";
 
 interface ProductCounts {
   reviews: number;
   wishlists: number;
 }
 
-interface Product {
+export interface Product {
   id: string;
   title: string;
   slug: string;
@@ -31,27 +27,27 @@ interface Product {
   saleStart?: string | null;
   saleEnd?: string | null;
   isFlashSale?: boolean;
-  itemsSold?: number | null;
-  itemLimit?: number | null;
-  discountPercentage?: number | null;
+  // Removed: itemsSold?: number | null; // No longer used for "items left" display
+  // Removed: itemLimit?: number | null; // No longer used for "items left" display
+  // Re-added: discountPercentage?: number | null; // This will be calculated on the client
   images: string[]; // Now expected to contain full public URLs
   brand?: string | null;
   width?: number | null;
   height?: number | null;
   stock: number;
-  isActive?: boolean;
+  isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
   createdById?: string;
   categoryId?: string;
-  timeLeftMs?: number | null;
+  timeLeftMs?: number | null; // Re-added timeLeftMs to the interface as it's passed from parent
   rating?: number | null;
   _count?: ProductCounts;
 }
 
 interface ProductCardProps {
   product: Product;
-  showTimer?: boolean;
+  showTimer?: boolean; // Controls whether the timer badge is shown
   variant?: "default" | "large";
 }
 
@@ -92,8 +88,7 @@ const TimerBadge = ({ timeLeftMs }: { timeLeftMs: number }) => {
 
   return (
     <div
-      className="bg-(--color-primary) text-white text-xs font-semibold px-3 py-1 rounded-t-md border-1 border-b-0 border-l-(--color-background) border-r-(--color-primary) border-top-(--color-primary)"
-      style={{ width: "fit-content" }}
+      className="bg-(--color-primary) text-white text-xs font-semibold px-3 py-1 rounded-t-md w-[80.4px] text-center"
     >
       {displayTime}
     </div>
@@ -107,7 +102,7 @@ const WishlistIcon = ({
   isUpdating, // New prop for loading state
 }: {
   isWishlisted: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void; // Expects an event
   isUpdating: boolean;
 }) => (
   <button
@@ -131,7 +126,7 @@ const WishlistIcon = ({
 );
 
 // Quick View Icon Component
-const QuickViewIcon = ({ onClick }: { onClick?: () => void }) => (
+const QuickViewIcon = ({ onClick }: { onClick?: (e: React.MouseEvent) => void }) => ( // Expects an event
   <button
     onClick={onClick}
     className="bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110"
@@ -149,8 +144,8 @@ const ActionButtons = ({
   isWishlistUpdating, // Pass loading state
 }: {
   isWishlisted: boolean;
-  onWishlistClick: () => void;
-  onQuickViewClick?: () => void;
+  onWishlistClick: (e: React.MouseEvent) => void; // Expects an event
+  onQuickViewClick?: (e: React.MouseEvent) => void; // Expects an event
   isWishlistUpdating: boolean;
 }) => (
   <div className="absolute top-3 right-3 flex flex-col space-y-2 z-20">
@@ -173,41 +168,27 @@ const ProductImage = ({
   const imgRef = useRef<HTMLImageElement>(null);
 
   const handleImageLoad = useCallback(() => {
-    if (imgRef.current && typeof window !== 'undefined' && typeof ColorThief !== 'undefined') {
+    // Only attempt ColorThief if it's available globally and the image is loaded
+    if (imgRef.current && imgRef.current.naturalWidth > 0 && typeof window !== 'undefined' && typeof (window as any).ColorThief !== 'undefined') {
       try {
-        const tempImg = new window.Image();
-        tempImg.crossOrigin = 'Anonymous'; // Essential for CORS if image is from different origin
-        tempImg.src = imgRef.current.src;
-
-        tempImg.onload = () => {
-          try {
-            const colorThief = new ColorThief();
-            const color = colorThief.getColor(tempImg);
-            setBgColor(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
-          } catch (err) {
-            console.error("Color extraction failed:", err);
-            setBgColor("rgb(243, 244, 246)");
-          }
-        };
-
-        tempImg.onerror = () => {
-          console.warn("Failed to load image for color extraction (tempImg).");
-          setBgColor("rgb(243, 244, 246)");
-        };
-
-      } catch (err) {
-        console.error("Color extraction setup failed:", err);
+        const colorThief = new (window as any).ColorThief();
+        const color = colorThief.getColor(imgRef.current); // Use the actual Image element
+        if (color) {
+          setBgColor(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
+        }
+      } catch (e) {
+        console.error("Error extracting color:", e);
         setBgColor("rgb(243, 244, 246)");
       }
-    } else if (typeof ColorThief === 'undefined') {
-      console.warn("ColorThief not loaded. Ensure the script is included in layout.tsx.");
+    } else if (typeof (window as any).ColorThief === 'undefined') {
+      console.warn("ColorThief not loaded. Ensure the script is included in layout.tsx with 'async'.");
       setBgColor("rgb(243, 244, 246)");
     }
   }, []);
 
   const imageUrl = (product.images && product.images.length > 0)
     ? product.images[0]
-    : `https://placehold.co/${variant === "large" ? "250x250" : "200x200"}/E0E0E0/0D171C?text=No+Image`; // Robust fallback
+    : `https://placehold.co/${variant === "large" ? "250x250" : "200x200"}/E0E0E0/0D171C?text=No+Image`;
 
   return (
     <div
@@ -293,7 +274,7 @@ const AddToCartButton = ({
   onAddToCart: (e: React.MouseEvent) => void;
   product: Product;
   isAddingToCart: boolean;
-}) => { // Removed addToCartMessage from props as it's handled by toast
+}) => {
   return (
     <>
       <Button
@@ -317,14 +298,13 @@ const AddToCartButton = ({
   );
 };
 
-// Discount Badge Component - Adjusted for top-left corner
+// Discount Badge Component - Re-added
 const DiscountBadge = ({ percentage }: { percentage: number }) => {
-  if (percentage <= 0) return null; // Don't render if no positive discount
+  if (percentage <= 0) return null;
 
   return (
     <div
-      className="absolute top-0 left-0 bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-br-md z-10" // Red background, rounded bottom-right and top-left
-      style={{ width: "fit-content" }}
+      className="absolute top-0 left-0 bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-br-md z-10 w-[80px]" // Red background, rounded bottom-right and top-left
     >
       {percentage}% Off!
     </div>
@@ -340,8 +320,8 @@ const ProductContent = ({
   product: ProductCardProps["product"];
   onAddToCart: (e: React.MouseEvent) => void;
   isAddingToCart: boolean;
-}) => ( // Removed addToCartMessage from props
-  <div className="p-4 space-y-3">
+}) => (
+  <div className="p-4 space-y-3 h-[166px] flex flex-col">
     <h3 className="font-medium text-gray-900 text-sm leading-tight hover:text-blue-500 transition-colors duration-200 line-clamp-2">
       {product.title}
     </h3>
@@ -351,20 +331,14 @@ const ProductContent = ({
     {product.rating !== null && product.rating !== undefined && product.rating > 0 && (
       <StarRating rating={product.rating} />
     )}
-
-    {product.itemsSold !== null && product.itemsSold !== undefined &&
-      product.itemLimit !== null && product.itemLimit !== undefined &&
-      (product.itemLimit - product.itemsSold > 0) && (
-      <div className="text-xs text-gray-600">
-        Only {product.itemLimit - product.itemsSold} items left!
-      </div>
-    )}
-
-    <AddToCartButton
-      onAddToCart={onAddToCart}
-      product={product}
-      isAddingToCart={isAddingToCart}
-    />
+    
+    <div className="flex-auto flex items-end  ">
+      <AddToCartButton
+        onAddToCart={onAddToCart}
+        product={product}
+        isAddingToCart={isAddingToCart}
+      />
+    </div>
   </div>
 );
 
@@ -381,6 +355,18 @@ export default function ProductCard({
 
   const { data: session, status: authStatus } = useSession(); // Get session data and status
   const router = useRouter();
+
+  // Calculate discount percentage
+  const discountPercentage =
+    product.salePrice !== null && product.salePrice !== undefined && product.salePrice < product.price && product.price > 0
+      ? Math.round(((product.price - product.salePrice) / product.price) * 100)
+      : null;
+
+  // Calculate timeLeftMs dynamically for the timer
+  // This calculation is now done in the parent component (products/page.tsx) and passed as product.timeLeftMs
+  // However, if the parent doesn't pass it, we can re-calculate here as a fallback or for consistency.
+  // Given the error, it implies timeLeftMs IS being passed, so we will rely on it.
+  const timeLeftMs = product.timeLeftMs ?? 0;
 
   // Fetch initial wishlist status
   useEffect(() => {
@@ -499,37 +485,35 @@ export default function ProductCard({
     }
   };
 
-  const hasDiscount = product.discountPercentage !== null && product.discountPercentage !== undefined && product.discountPercentage > 0;
+  console.log("ProductCard:", product)
+  console.log("showTimer",showTimer)
 
   return (
     <div
       className={`relative ${
-        variant === "large" ? "w-full max-w-sm" : "w-full min-w-[250px] max-w-[280px]" // Fixed Tailwind CSS syntax
+        variant === "large" ? "w-full max-w-sm" : "w-full min-w-[250px] max-w-[280px]"
       } mx-auto`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {showTimer && product.timeLeftMs !== null && product.timeLeftMs !== undefined && product.timeLeftMs > 0 && (
-        <TimerBadge timeLeftMs={product.timeLeftMs} />
+      {/* Timer Badge - Now calculated locally */}
+      {showTimer && timeLeftMs > 0 && (
+        <TimerBadge timeLeftMs={timeLeftMs} />
       )}
 
       <div className="bg-white rounded-b-lg rounded-tr-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg group">
         <Link href={`/products/${product.slug}`} className="block">
           <div className="relative bg-gray-50 overflow-hidden">
-            {hasDiscount && (
-              <DiscountBadge percentage={product.discountPercentage!} />
+            {/* Discount Badge - Now calculated locally */}
+            {discountPercentage !== null && discountPercentage > 0 && (
+              <DiscountBadge percentage={discountPercentage} />
             )}
             <ActionButtons
               isWishlisted={isWishlisted}
-              onWishlistClick={() => handleWishlistClick}
-              onQuickViewClick={() => handleQuickViewClick}
-              isWishlistUpdating={isWishlistUpdating} // Pass loading state
-            />
-            {/* <ActionButtons
-              isWishlisted={isWishlisted}
               onWishlistClick={handleWishlistClick}
               onQuickViewClick={handleQuickViewClick}
-            /> */}
+              isWishlistUpdating={isWishlistUpdating}
+            />
             <ProductImage product={product} variant={variant} isHovered={isHovered} />
           </div>
         </Link>
@@ -561,4 +545,5 @@ export {
   ProductPrice,
   AddToCartButton,
   ProductContent,
+  DiscountBadge, // Exported for potential reuse
 };

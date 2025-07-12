@@ -18,28 +18,25 @@ interface TransformedProduct {
   description: string | null;
   price: number;
   salePrice: number | null;
-  saleStart: string | null;
-  saleEnd: string | null;
+  saleStart: string | null; // Keep saleStart as it's from DB
+  saleEnd: string | null;    // Keep saleEnd as it's from DB
   isFlashSale: boolean;
-  itemsSold: number | null;
-  itemLimit: number | null;
-  discountPercentage: number | null;
   images: string[];
   brand: string | null;
-  width: string | null;
-  height: string | null;
+  width: number | null;
+  height: number | null;
   stock: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
   createdById: string;
   categoryId: string;
-  timeLeftMs: number | null;
   rating: number | null;
   _count: {
     reviews: number;
     wishlists: number;
   };
+  // Removed: timeLeftMs?: number | null; // This is a derived property, not from DB
 }
 
 interface Category {
@@ -84,8 +81,6 @@ export default function ProductsPage() { // Renamed to ProductsPage
     setError(null);
     try {
       const url = new URL(`${window.location.origin}/api/products`);
-      // No 'type' parameter needed here, as the default behavior of /api/products
-      // (when no slug or specific type is provided) is to return all active products.
       if (categoryId) {
         url.searchParams.append("categoryId", categoryId);
       }
@@ -184,19 +179,38 @@ export default function ProductsPage() { // Renamed to ProductsPage
       )}
 
       {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-start">
-        {products.map((product) => (
-          <div key={product.id} className="flex-none">
-            <ProductCard
-              product={{
-                ...product,
-                width: product.width !== null && product.width !== undefined ? Number(product.width) : undefined,
-                height: product.height !== null && product.height !== undefined ? Number(product.height) : undefined,
-              }}
-              showTimer={(product.timeLeftMs ?? 0) > 0} // Only show timer if it's a flash sale AND time is left
-            />
-          </div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-end">
+        {products.map((product) => {
+          // Calculate timeLeftMs on the client-side based on saleEnd
+          let timeLeftMs = 0;
+          console.log("Product:", product)
+          if (product.saleEnd && product.saleStart) {
+            const saleEndDate = new Date(product.saleEnd).getTime();
+            const now = new Date().getTime();
+            timeLeftMs = saleEndDate - now;
+            console.log("Time Left:", timeLeftMs)
+            console.log("Sale End:", product.saleEnd)
+            console.log("saleEndDate:", saleEndDate)
+          }
+
+          console.log(products,"(timeLeftMs > 0 ? timeLeftMs : null)",(timeLeftMs > 0 ? timeLeftMs : null))
+
+          return (
+            <div key={product.id} className="flex-none">
+              <ProductCard
+                product={{
+                  ...product,
+                  // Ensure width and height are numbers or null, as per ProductCard's Product interface
+                  width: product.width !== null && product.width !== undefined ? Number(product.width) : null,
+                  height: product.height !== null && product.height !== undefined ? Number(product.height) : null,
+                  timeLeftMs: timeLeftMs > 0 ? timeLeftMs : null, // Pass calculated timeLeftMs
+                }}
+                // Show timer only if it's a flash sale AND calculated timeLeftMs is positive
+                showTimer={ timeLeftMs > 0}
+              />
+            </div>
+          );
+        })}
       </div>
     </section>
   );

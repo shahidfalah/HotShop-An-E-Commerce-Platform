@@ -485,9 +485,6 @@ export default function ProductCard({
     }
   };
 
-  console.log("ProductCard:", product)
-  console.log("showTimer",showTimer)
-
   return (
     <div
       className={`relative ${

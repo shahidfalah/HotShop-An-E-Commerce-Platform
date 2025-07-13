@@ -188,12 +188,7 @@ export default function ProductsPage() { // Renamed to ProductsPage
             const saleEndDate = new Date(product.saleEnd).getTime();
             const now = new Date().getTime();
             timeLeftMs = saleEndDate - now;
-            console.log("Time Left:", timeLeftMs)
-            console.log("Sale End:", product.saleEnd)
-            console.log("saleEndDate:", saleEndDate)
           }
-
-          console.log(products,"(timeLeftMs > 0 ? timeLeftMs : null)",(timeLeftMs > 0 ? timeLeftMs : null))
 
           return (
             <div key={product.id} className="flex-none">

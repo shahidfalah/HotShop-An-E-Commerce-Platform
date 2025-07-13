@@ -63,10 +63,10 @@ export default function NewArrivals({ initialProducts }: { initialProducts: Prod
       return product.images[0];
     }
     
-    if (key === 'description' || key === 'title' ) return product[key];
+    if (key === 'description' || key === 'title' || key === 'slug') return product[key];
     else return defaultValue;
   };
-
+  
   return (
     <section id="new-arrivals" className="py-12 bg-white px-[16px] md:px-[88px]">
       <div className="container mx-auto px-4">

@@ -307,7 +307,7 @@ export default function ProductDetailPage() {
             {/* Action Buttons */}
             <div className="flex space-x-4 items-center">
               <Link href="/products">
-                <Button variant="outline" className="px-6 py-3 border-none text-(--color-font) bg-(#E0E0E0) hover:bg-(#bdbdbd)">
+                <Button variant="outline" className="px-6 py-3 border-none text-(--color-font) bg-[#E0E0E0] hover:bg-[#bdbdbd]">
                   <ArrowLeft className="w-4 h-4 mr-2" /> Go Back
                 </Button>
               </Link>

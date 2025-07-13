@@ -71,7 +71,7 @@ export default function BestOfferBanner() {
                 </div>
               </div>
 
-              <Link href="/flash-sale">
+              <Link href="/products">
                 <Button
                   className="px-6 py-2 text-sm font-medium transition-all duration-200
                     bg-yellow-400 hover:bg-yellow-300 text-gray-900

@@ -3,16 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { supabase } from "@/lib/storage/supabase"; // Import supabase client
 import { WishlistService } from "./wishlist.service"; // Import WishlistService
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+import slugify from "slugify"; // Import slugify library
 
 // Helper function to get public URL for an image filename
 function getPublicImageUrl(imageName: string): string {
@@ -33,6 +24,8 @@ function formatProductForClient(product: any) {
     ...product,
     price: product.price ? parseFloat(product.price.toString()) : 0,
     salePrice: product.salePrice ? parseFloat(product.salePrice.toString()) : null,
+    // width and height are strings in DB, but often used as numbers in frontend.
+    // Convert to number here for client-side use, or null if invalid.
     width: product.width ? parseFloat(product.width.toString()) : null,
     height: product.height ? parseFloat(product.height.toString()) : null,
   };
@@ -82,8 +75,8 @@ interface ProductCreateInput {
   saleStart?: string;
   saleEnd?: string;
   brand: string;
-  width?: string;
-  height?: string;
+  width?: string; // Keep as string to match DB schema
+  height?: string; // Keep as string to match DB schema
   stock: string;
   categoryId: string;
   createdById: string;
@@ -95,19 +88,52 @@ interface ProductCreateInput {
 export class ProductService {
 
   /**
+   * Helper function to generate a unique slug.
+   * It takes a base title, slugifies it, and checks for uniqueness in the database.
+   * If the slug already exists, it appends a number to make it unique.
+   */
+  static async generateUniqueSlug(title: string): Promise<string> {
+    let baseSlug = slugify(title, { lower: true, strict: true, remove: /[*+~.()'"!:@]/g });
+    if (!baseSlug) { // Fallback for titles that result in empty slugs
+      baseSlug = "product";
+    }
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Check if slug already exists
+    let existingProduct = await prisma.product.findUnique({
+      where: { slug: slug },
+      select: { id: true }, // Select only ID for efficiency
+    });
+
+    // If slug exists, append a counter until it's unique
+    while (existingProduct) {
+      slug = `${baseSlug}-${counter}`;
+      existingProduct = await prisma.product.findUnique({
+        where: { slug: slug },
+        select: { id: true },
+      });
+      counter++;
+    }
+    return slug;
+  }
+
+  /**
    * Creates a new product.
    * @param data The product data.
    * @returns The created product.
    */
   static async createProduct(data: ProductCreateInput) {
-    const slug = slugify(data.title);
+    // Generate a unique slug before creating the product
+    const uniqueSlug = await ProductService.generateUniqueSlug(data.title);
 
     const priceNum = parseFloat(data.price);
     const salePriceNum = data.salePrice ? parseFloat(data.salePrice) : undefined;
     const stockNum = parseInt(data.stock, 10);
 
-    const widthNum = data.width ? parseFloat(data.width) : undefined;
-    const heightNum = data.height ? parseFloat(data.height) : undefined;
+    // Keep width and height as strings if they are defined, otherwise undefined
+    const widthString = data.width !== undefined && data.width !== null ? data.width.toString() : undefined;
+    const heightString = data.height !== undefined && data.height !== null ? data.height.toString() : undefined;
 
     const saleStartDate = data.saleStart ? new Date(data.saleStart) : undefined;
     const saleEndDate = data.saleEnd ? new Date(data.saleEnd) : undefined;
@@ -117,19 +143,19 @@ export class ProductService {
     return await prisma.product.create({
       data: {
         title: data.title,
+        slug: uniqueSlug, // Use the unique slug here
         description: data.description,
         price: priceNum,
         salePrice: salePriceNum,
         saleStart: saleStartDate,
         saleEnd: saleEndDate,
         brand: data.brand,
-        width: widthNum !== undefined ? widthNum.toString() : undefined,
-        height: heightNum !== undefined ? heightNum.toString() : undefined,
+        width: widthString, // Save as string to match DB schema
+        height: heightString, // Save as string to match DB schema
         stock: stockNum,
         categoryId: data.categoryId,
         createdById: data.createdById,
         images: imagesArray,
-        slug,
         isFlashSale: data.isFlashSale ?? false,
         isActive: data.isActive ?? true,
       },
@@ -143,7 +169,7 @@ export class ProductService {
    * @param userId Optional user ID to check wishlist status.
    * @returns The product object with `isWishlistedByUser` or null if not found.
    */
-  static async findProductBySlug(slug: string, userId?: string) { // Renamed to findProductBySlug and added userId
+  static async findProductBySlug(slug: string, userId?: string) {
     try {
       const product = await prisma.product.findUnique({
         where: { slug: slug },
@@ -195,9 +221,10 @@ export class ProductService {
    * Finds all active products. Can be filtered by category.
    * This method is perfect for your new /products page.
    * @param categoryId Optional category ID to filter by.
+   * @param userId Optional user ID to check wishlist status.
    * @returns An array of products.
    */
-  static async findAllProducts(categoryId?: string) {
+  static async findAllProducts(categoryId?: string, userId?: string) {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
@@ -214,15 +241,31 @@ export class ProductService {
         },
       }
     });
-    return products.map(formatProductForClient); // Format all products
+
+    // Map and format products, and check wishlist status for each
+    const formattedProducts = await Promise.all(
+      products.map(async (product) => {
+        const formatted = formatProductForClient(product);
+        let isWishlistedByUser = false;
+        if (userId) {
+          isWishlistedByUser = await WishlistService.isProductWishlisted(userId, product.id);
+        }
+        return {
+          ...formatted,
+          isWishlistedByUser: isWishlistedByUser,
+        };
+      })
+    );
+    return formattedProducts;
   }
 
   /**
    * Finds products currently on flash sale. Can be filtered by category.
    * @param categoryId Optional category ID to filter by.
+   * @param userId Optional user ID to check wishlist status.
    * @returns An array of flash sale products.
    */
-  static async findFlashSaleProducts(categoryId?: string) {
+  static async findFlashSaleProducts(categoryId?: string, userId?: string) {
     const now = new Date();
     const products = await prisma.product.findMany({
       where: {
@@ -243,20 +286,36 @@ export class ProductService {
         },
       }
     });
-    return products.map(formatProductForClient); // Format all products
+
+    // Map and format products, and check wishlist status for each
+    const formattedProducts = await Promise.all(
+      products.map(async (product) => {
+        const formatted = formatProductForClient(product);
+        let isWishlistedByUser = false;
+        if (userId) {
+          isWishlistedByUser = await WishlistService.isProductWishlisted(userId, product.id);
+        }
+        return {
+          ...formatted,
+          isWishlistedByUser: isWishlistedByUser,
+        };
+      })
+    );
+    return formattedProducts;
   }
 
   /**
    * Finds the latest active products.
    * @param limit The maximum number of products to return.
+   * @param userId Optional user ID to check wishlist status.
    * @returns An array of latest products.
    */
-  static async findLatestProducts(limit: number = 8) {
+  static async findLatestProducts(limit: number = 8, userId?: string) {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
       },
-      orderBy: { stock: "desc" },
+      orderBy: { createdAt: "desc" },
       take: limit,
       include: {
         category: { select: { id: true, title: true, slug: true } },
@@ -268,7 +327,22 @@ export class ProductService {
         },
       }
     });
-    return products.map(formatProductForClient); // Format all products
+
+    // Map and format products, and check wishlist status for each
+    const formattedProducts = await Promise.all(
+      products.map(async (product) => {
+        const formatted = formatProductForClient(product);
+        let isWishlistedByUser = false;
+        if (userId) {
+          isWishlistedByUser = await WishlistService.isProductWishlisted(userId, product.id);
+        }
+        return {
+          ...formatted,
+          isWishlistedByUser: isWishlistedByUser,
+        };
+      })
+    );
+    return formattedProducts;
   }
 
   /**

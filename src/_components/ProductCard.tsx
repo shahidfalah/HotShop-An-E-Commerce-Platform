@@ -27,10 +27,7 @@ export interface Product {
   saleStart?: string | null;
   saleEnd?: string | null;
   isFlashSale?: boolean;
-  // Removed: itemsSold?: number | null; // No longer used for "items left" display
-  // Removed: itemLimit?: number | null; // No longer used for "items left" display
-  // Re-added: discountPercentage?: number | null; // This will be calculated on the client
-  images: string[]; // Now expected to contain full public URLs
+  images: string[];
   brand?: string | null;
   width?: number | null;
   height?: number | null;

@@ -2,15 +2,17 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useCallback } from "react"; // Added useCallback for memoization
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/_components/ui/button";
 import { Input } from "@/_components/ui/input";
 import { Textarea } from "@/_components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/_components/ui/card";
 import { Label } from "@/_components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/_components/ui/select";
-import { Checkbox } from "@/_components/ui/checkbox"; // Assuming you have a Checkbox component (e.g., from shadcn/ui)
-import { useSession } from "next-auth/react"; // To get the current user's ID
+import { Checkbox } from "@/_components/ui/checkbox";
+import { useSession } from "next-auth/react";
+import imageCompression from 'browser-image-compression';
+import { toast } from 'react-hot-toast'; // For user feedback
 
 interface Category {
   id: string;
@@ -19,38 +21,36 @@ interface Category {
 }
 
 export default function AdminProductForm() {
-  const { data: session } = useSession(); // Get session data
+  const { data: session } = useSession();
   const [categories, setCategories] = useState<Category[]>([]);
   
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    price: "", // Original Price
-    salePrice: "", // Discounted Price (optional)
-    saleStart: "", // For flash sales
-    saleEnd: "",   // For flash sales
+    price: "",
+    salePrice: "",
+    saleStart: "",
+    saleEnd: "",
     brand: "",
-    width: "",
-    height: "",
-    stock: "",     // General inventory stock
+    width: "", // Still string in form state
+    height: "", // Still string in form state
+    stock: "",
     categoryId: "",
     images: [] as File[], // Array of File objects
-    isFlashSale: false, // New: To mark as a flash sale product
-    createdById: session?.user?.id || "", // Initialize with user ID if available
+    isFlashSale: false,
+    createdById: session?.user?.id || "",
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [discountDisplay, setDiscountDisplay] = useState<string>(""); // New state for discount display
+  const [discountDisplay, setDiscountDisplay] = useState<string>("");
 
-  // Update createdById when session changes
   useEffect(() => {
     if (session?.user?.id) {
       setFormData(prev => ({ ...prev, createdById: session.user.id as string }));
     }
   }, [session]);
 
-  // Effect to calculate and update discount display
   useEffect(() => {
     const originalPrice = parseFloat(formData.price);
     const salePrice = parseFloat(formData.salePrice);
@@ -95,6 +95,7 @@ export default function AdminProductForm() {
       return;
     }
 
+    // Flash Sale specific validation
     if (formData.isFlashSale && (!formData.saleStart || !formData.saleEnd)) {
       setMessage({ type: "error", text: "Flash Sale products require a start and end date." });
       setIsLoading(false);
@@ -102,49 +103,69 @@ export default function AdminProductForm() {
     }
 
     const fd = new FormData();
-    // Append all form data fields except 'images' (handled separately) and 'isFlashSale' (handled as boolean)
+    
+    // Append all form data fields to FormData object
     Object.entries(formData).forEach(([k, v]) => {
-      if (k === "images") return; // Skip images, handled below
+      // Skip images as they are handled separately
+      if (k === "images") return; 
+
+      // Handle boolean for isFlashSale
       if (k === "isFlashSale") {
-        fd.append(k, v ? "true" : "false"); // Convert boolean to string
-      } else {
+        fd.append(k, String(v)); // Convert boolean to string
+      } else if (v !== null && v !== undefined) {
+        // Append other fields, ensuring they are not null/undefined
         fd.append(k, v as string);
       }
     });
 
-    // Append image files
-    formData.images.forEach(file => {
-      fd.append("images", file);
+    // Append image files to FormData
+    formData.images.forEach((file) => {
+      fd.append(`images`, file, file.name); // Append with original filename
     });
 
     try {
       const res = await fetch("/api/admin/products", { method: "POST", body: fd });
+      
+      // Check if the response content type is JSON before parsing
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const errorText = await res.text(); // Read as text if not JSON
+        console.error("Non-JSON response from /api/admin/products:", errorText);
+        // Attempt to parse if it looks like a Vercel 413 error page
+        if (errorText.includes("Request Entity Too Large")) {
+          throw new Error("File size too large. Please try smaller images or reduce quantity.");
+        }
+        throw new Error(`Server responded with non-JSON content (Status: ${res.status}). Check server logs for details.`);
+      }
+
       const json = await res.json();
 
       if (json.success) {
         setMessage({ type: "success", text: "Product created successfully!" });
+        toast.success("Product created successfully!"); // Show toast notification
         // Reset form data after successful submission
         setFormData({
           title: "", description: "", price: "", salePrice: "",
           saleStart: "", saleEnd: "", brand: "", width: "", height: "", stock: "",
           categoryId: "", images: [], isFlashSale: false,
-          createdById: session?.user?.id || "", // Reset with current user ID
+          createdById: session?.user?.id || "",
         });
         setDiscountDisplay(""); // Reset discount display
-        // Optionally, trigger a refresh of the product list in AdminDashboard if it exists
       } else {
         setMessage({ type: "error", text: json.error || "Failed to create product." });
+        toast.error(json.error || "Failed to create product."); // Show toast notification
       }
     } catch (error: any) {
       console.error("Error submitting product form:", error);
       setMessage({ type: "error", text: error.message || "An unexpected error occurred." });
+      toast.error(error.message || "An unexpected error occurred."); // Show toast notification
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement; // Cast to HTMLInputElement for 'checked'
+    const { name, value, type, checked } = e.target as HTMLInputElement;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -158,8 +179,43 @@ export default function AdminProductForm() {
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(f => ({ ...f, images: Array.from(e.target.files ?? []) }));
+  // NEW: Handle file change with compression
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const compressedFiles: File[] = [];
+
+    if (files.length === 0) {
+      setFormData(f => ({ ...f, images: [] }));
+      return;
+    }
+
+    setIsLoading(true); // Show loading while compressing
+    setMessage(null); // Clear previous messages
+
+    try {
+      for (const file of files) {
+        // Define compression options
+        const options = {
+          maxSizeMB: 1, // Max file size in MB (e.g., 1MB)
+          maxWidthOrHeight: 1920, // Max width or height (e.g., 1920px)
+          useWebWorker: true, // Use web worker for better performance
+          fileType: file.type, // Maintain original file type
+        };
+        
+        // Compress the image
+        const compressedFile = await imageCompression(file, options);
+        compressedFiles.push(compressedFile);
+      }
+      setFormData(f => ({ ...f, images: compressedFiles }));
+      toast.success(`${compressedFiles.length} image(s) processed and ready for upload!`);
+    } catch (error: any) {
+      console.error('Image compression failed:', error);
+      setMessage({ type: "error", text: `Image processing failed: ${error.message}. Please try again.` });
+      toast.error(`Image processing failed: ${error.message}.`);
+      setFormData(f => ({ ...f, images: [] })); // Clear images on error
+    } finally {
+      setIsLoading(false); // Hide loading
+    }
   };
 
   return (
@@ -259,7 +315,6 @@ export default function AdminProductForm() {
             </div>
           </div>
 
-          {/* New: Discount Percentage Display */}
           <div className="space-y-2">
             <Label htmlFor="discountDisplay">Calculated Discount</Label>
             <Input
@@ -267,26 +322,24 @@ export default function AdminProductForm() {
               name="discountDisplay"
               type="text"
               value={discountDisplay}
-              readOnly // Make this input read-only
+              readOnly
               className="bg-(--color-background) border-(--color-border) text-(--color-font) opacity-70 cursor-not-allowed"
             />
           </div>
 
-          {/* New: Is Flash Sale Checkbox */}
           <div className="flex items-center space-x-2">
             <Checkbox
               id="isFlashSale"
               name="isFlashSale"
               checked={formData.isFlashSale}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isFlashSale: !!checked }))}
-              className="border-[--color-border] data-[state=checked]:bg-[--color-primary] data-[state=checked]:text-white"
+              className="border-(--color-border) data-(state=checked):bg-(--color-primary) data-(state=checked):text-white"
             />
-            <Label htmlFor="isFlashSale" className="text-[--color-font]">Is this a Flash Sale product?</Label>
+            <Label htmlFor="isFlashSale" className="text-(--color-font)">Is this a Flash Sale product?</Label>
           </div>
 
-          {/* Conditional: Sale Start/End Dates for Flash Sales */}
           {formData.isFlashSale && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-[--color-border] rounded-md p-4 bg-[--color-background]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-(--color-border) rounded-md p-4 bg-(--color-background)">
               <div className="space-y-2">
                 <Label htmlFor="saleStart">Sale Start Date *</Label>
                 <Input
@@ -295,8 +348,8 @@ export default function AdminProductForm() {
                   type="datetime-local"
                   value={formData.saleStart}
                   onChange={handleChange}
-                  required={formData.isFlashSale} // Make required only if flash sale
-                  className="bg-[--color-surface] border-[--color-border] text-[--color-font]"
+                  required={formData.isFlashSale}
+                  className="bg-(--color-surface) border-(--color-border) text-(--color-font)"
                 />
               </div>
 
@@ -308,8 +361,8 @@ export default function AdminProductForm() {
                   type="datetime-local"
                   value={formData.saleEnd}
                   onChange={handleChange}
-                  required={formData.isFlashSale} // Make required only if flash sale
-                  className="bg-[--color-surface] border-[--color-border] text-[--color-font]"
+                  required={formData.isFlashSale}
+                  className="bg-(--color-surface) border-(--color-border) text-(--color-font)"
                 />
               </div>
             </div>
@@ -325,8 +378,13 @@ export default function AdminProductForm() {
               multiple
               required
               onChange={handleFileChange}
-              className="bg-(--color-background) border-(--color-border) text-(--color-font) file:text-[--color-primary] file:bg-[--color-background] file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-2"
+              className="bg-(--color-background) border-(--color-border) text-(--color-font) file:text-(--color-primary) file:bg-(--color-background) file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-2"
             />
+            {formData.images.length > 0 && (
+              <p className="text-sm text-gray-500 mt-2">
+                {formData.images.length} image(s) selected and processed.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -336,18 +394,20 @@ export default function AdminProductForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="width">Width</Label>
-              <Input id="width" name="width" value={formData.width} onChange={handleChange} placeholder="e.g., 10cm" className="bg-(--color-background) border-(--color-border) text-(--color-font)" />
+              <Label htmlFor="width">Width (e.g., 10.5)</Label>
+              <Input id="width" name="width" type="number" step="0.01" value={formData.width} onChange={handleChange} placeholder="e.g., 10.5" className="bg-(--color-background) border-(--color-border) text-(--color-font)" />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="height">Height</Label>
+              <Label htmlFor="height">Height (e.g., 15.0)</Label>
               <Input
                 id="height"
                 name="height"
+                type="number"
+                step="0.01"
                 value={formData.height}
                 onChange={handleChange}
-                placeholder="e.g., 15cm"
+                placeholder="e.g., 15.0"
                 className="bg-(--color-background) border-(--color-border) text-(--color-font)"
               />
             </div>

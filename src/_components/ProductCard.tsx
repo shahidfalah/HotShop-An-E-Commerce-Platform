@@ -243,11 +243,13 @@ const ProductPrice = ({
   salePrice,
   isFlashSale,
   timeLeftMs,
+  expired,
 }: {
   price: number;
   salePrice?: number | null;
   isFlashSale?: boolean;
   timeLeftMs?: number | null;
+  expired? : boolean;
 }) => {
   // Determine if sale price should be shown
   const showSalePrice =
@@ -255,7 +257,7 @@ const ProductPrice = ({
     salePrice !== undefined &&
     salePrice < price &&
     price > 0 &&
-    (!isFlashSale || (isFlashSale && (timeLeftMs ?? 0) > 0)); // Only show if flash sale is active or not a flash sale
+    (!isFlashSale || (isFlashSale && (timeLeftMs ?? 0) > 0)) && !expired; // Only show if flash sale is active or not a flash sale
 
   return (
     <div className="flex items-center space-x-2">
@@ -339,10 +341,12 @@ const ProductContent = ({
   product,
   onAddToCart,
   isAddingToCart,
+  expired,
 }: {
   product: ProductCardProps["product"];
   onAddToCart: (e: React.MouseEvent) => void;
   isAddingToCart: boolean;
+  expired: boolean;
 }) => (
   <div className="p-4 space-y-3 h-[166px] flex flex-col">
     <h3 className="font-medium text-gray-900 text-sm leading-tight hover:text-(--color-primary) transition-colors duration-200 line-clamp-2">
@@ -355,6 +359,7 @@ const ProductContent = ({
       salePrice={product.salePrice}
       isFlashSale={product.isFlashSale}
       timeLeftMs={product.timeLeftMs}
+      expired={expired}
     />
 
     {product.rating !== null && product.rating !== undefined && product.rating > 0 && (
@@ -377,6 +382,7 @@ export default function ProductCard({
   showTimer = false,
   variant = "default",
 }: ProductCardProps) {
+  console.log("ProductCard Props:", product)
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isWishlistUpdating, setIsWishlistUpdating] = useState(false); // New state for wishlist loading
   const [isHovered, setIsHovered] = useState(false);
@@ -521,10 +527,12 @@ export default function ProductCard({
   // Determine if the timer is active (only if showTimer is true and timeLeftMs > 0)
   const isTimerActive = showTimer && timeLeftMs > 0;
 
+  const expired = (product.saleStart && product.saleEnd && new Date(product.saleEnd) < new Date()) as boolean;
+
   return (
     <div
       className={`relative ${
-        variant === "large" ? "w-full max-w-sm" : "w-full min-w-[250px] max-w-[280px]"
+        variant === "large" ? "w-full max-w-sm" : "w-full min-w-[250px] max-w-[270px]"
       } mx-auto`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -539,7 +547,7 @@ export default function ProductCard({
           <div className="relative bg-gray-50 overflow-hidden">
             {/* Discount Badge - Only show if discountPercentage > 0 AND (NOT flash sale OR flash sale is active) */}
             {discountPercentage !== null && discountPercentage > 0 &&
-             (!product.isFlashSale || (product.isFlashSale && isTimerActive)) && (
+             (!product.isFlashSale || (product.isFlashSale && isTimerActive)) && !expired && (
               <DiscountBadge
                 percentage={discountPercentage}
                 isFlashSale={product.isFlashSale}
@@ -560,6 +568,7 @@ export default function ProductCard({
           product={product}
           onAddToCart={handleAddToCart}
           isAddingToCart={isAddingToCart}
+          expired={expired}
         />
 
         <div

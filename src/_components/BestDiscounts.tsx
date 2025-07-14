@@ -23,9 +23,6 @@ export interface Product { // Export Product interface as it will be used by par
   saleStart: string | null;
   saleEnd: string | null;
   isFlashSale: boolean;
-  itemsSold: number | null;
-  itemLimit: number | null;
-  discountPercentage: number | null; // Expecting this from the API now
   images: string[]; // This array should now contain full public URLs
   brand: string | null;
   width: number | null;
@@ -111,11 +108,13 @@ export default function BestDiscounts({ initialProducts }: { initialProducts: Pr
               className="flex gap-4 overflow-x-auto scrollbar-hide pb-4"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {products.map((product) => (
-                <div key={product.id} className="flex-none w-72 md:w-80">
-                  <ProductCard product={product} showTimer={false} />
-                </div>
-              ))}
+              {products.map((product) => {
+                if(!(product.saleStart && product.saleEnd && new Date(product.saleEnd) < new Date())){
+                  return (<div key={product.id} className="flex-none w-72 md:w-80">
+                    <ProductCard product={product} showTimer={false} />
+                  </div>)
+                }
+              })}
             </div>
           )}
         </div>

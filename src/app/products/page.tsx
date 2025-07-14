@@ -198,6 +198,7 @@ export default function ProductsPage() { // Renamed to ProductsPage
                   width: product.width !== null && product.width !== undefined ? Number(product.width) : null,
                   height: product.height !== null && product.height !== undefined ? Number(product.height) : null,
                   timeLeftMs: timeLeftMs > 0 ? timeLeftMs : null, // Pass calculated timeLeftMs
+                  isFlashSale: (timeLeftMs > 0),
                 }}
                 // Show timer only if it's a flash sale AND calculated timeLeftMs is positive
                 showTimer={ timeLeftMs > 0}

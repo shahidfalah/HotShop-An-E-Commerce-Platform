@@ -9,13 +9,30 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // REMOVED: unoptimized: true, // This was the problem!
     remotePatterns: [
       {
         protocol: 'https',
         hostname: "faonlwdlcauinddwhqbe.supabase.co",
         port: '',
-        pathname: '/storage/v1/object/public/product-images/**',
+        pathname: '/storage/v1/object/public/product-images/**', // For original/direct image URLs
+      },
+      {
+        protocol: 'https',
+        hostname: "faonlwdlcauinddwhqbe.supabase.co",
+        port: '',
+        pathname: '/storage/v1/render/image/public/product-images/**', // ADDED: For Supabase transformed/rendered images
+      },
+      {
+        protocol: 'https',
+        hostname: "faonlwdlcauinddwhqbe.supabase.co",
+        port: '',
+        pathname: '/storage/v1/object/public/user-avatars/**', // ADDED: For user avatars (original)
+      },
+      {
+        protocol: 'https',
+        hostname: "faonlwdlcauinddwhqbe.supabase.co",
+        port: '',
+        pathname: '/storage/v1/render/image/public/user-avatars/**', // ADDED: For user avatars (rendered/transformed)
       },
       {
         protocol: 'https',
@@ -25,7 +42,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com', // ADDED: To allow Google profile images
+        hostname: 'lh3.googleusercontent.com', // To allow Google profile images
         port: '',
         pathname: '/**',
       },

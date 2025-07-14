@@ -139,6 +139,64 @@ export function getOptimizedImageUrl(
 }
 
 /**
+ * Get public URL for any file in a specified bucket.
+ * This function is now more general.
+ * @param bucket The name of the storage bucket.
+ * @param path The path/filename of the file within the bucket.
+ * @param options Optional transform options for image optimization.
+ * @returns The public URL of the file.
+ */
+export function getPublicFileUrl(
+  bucket: keyof typeof STORAGE_BUCKETS,
+  path: string,
+  options?: {
+    width?: number
+    height?: number
+    quality?: number
+    format?: "origin"
+  },
+): string {
+  if (!path) return `https://placehold.co/150x150/E0E0E0/0D171C?text=No+Image`; // Generic fallback for missing path
+  
+  // If the path is already a full URL (e.g., from OAuth providers), return it directly
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  const { data } = supabase.storage.from(STORAGE_BUCKETS[bucket]).getPublicUrl(path, {
+    transform: {
+      width: options?.width,
+      height: options?.height,
+      quality: options?.quality || 80,
+      format: options?.format || "origin",
+    },
+  })
+
+  return data.publicUrl || `https://placehold.co/150x150/E0E0E0/0D171C?text=No+Image`; // Fallback if publicUrl is null
+}
+
+/**
+ * Specific helper to get the public URL for a user avatar.
+ * This handles cases where the image is a full URL (e.g., from Google OAuth)
+ * or a filename stored in Supabase 'user-avatars' bucket.
+ * @param imagePath The image path or full URL from the user object.
+ * @returns The public URL of the avatar.
+ */
+export function getPublicAvatarUrl(imagePath: string | null | undefined): string {
+  if (!imagePath) {
+    return "/defaultProfileImage.jpeg"; // Your default local fallback image
+  }
+  // If it's already a full URL (e.g., from OAuth), return it directly
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  // Otherwise, assume it's a path in the 'user-avatars' bucket
+  return getPublicFileUrl("USERS", imagePath, { width: 150, height: 150, quality: 75 });
+}
+
+
+
+/**
  * Upload multiple images
  *
  * Learning: Batch operations are more efficient

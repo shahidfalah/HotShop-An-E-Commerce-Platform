@@ -7,6 +7,7 @@ import AuthError from "@/_components/AuthError"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import Image from "next/image"
+import authImage from "../../../../public/authImage.png"
 
 export default async function LoginPage() {
   const session = await getServerSession(authOptions)
@@ -35,7 +36,7 @@ export default async function LoginPage() {
           </div>
 
         </div>
-        <Image className="h-full m-0 w-[50%] hidden md:block" src="/authImage.png" alt="image-auth" width={100} height={100}/>
+        <Image className="h-full m-0 w-[50%] hidden md:block" src={authImage} alt="image-auth" width={100} height={100}/>
       </div>
 
     </main>

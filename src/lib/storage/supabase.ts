@@ -1,3 +1,4 @@
+// src/lib/storage/supabase.ts
 import { createClient } from "@supabase/supabase-js"
 
 /**
@@ -11,16 +12,31 @@ import { createClient } from "@supabase/supabase-js"
  * 5. Easy integration with Supabase database
  */
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
-// const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-const supabaseRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string
+// Initialize Supabase client for CLIENT-SIDE access
+// This uses the ANON key, which is safe for public use and respects RLS.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; // Use the public ANON key for client-side
 
-if (!supabaseUrl || !supabaseRoleKey) {
-  throw new Error("Missing Supabase environment variables")
+// Check if environment variables are loaded for the client-side instance
+if (!supabaseUrl) {
+  throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
+}
+if (!supabaseAnonKey) {
+  throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseRoleKey)
+// Export the client-side Supabase instance
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// --- For SERVER-SIDE operations (e.g., image uploads in API routes),
+//     you would create a separate client instance using the SERVICE_ROLE_KEY.
+//     However, for the purpose of this client-side file, we only need the anon key.
+//     If you have API routes that use the service role key, they should create their own client.
+//     Example for server-side only:
+//     const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+//     if (!supabaseServiceRoleKey) { /* throw error */ }
+//     export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+
 
 /**
  * Storage bucket names
@@ -30,7 +46,7 @@ export const supabase = createClient(supabaseUrl, supabaseRoleKey)
 export const STORAGE_BUCKETS = {
   CATEGORIES: "category-images",
   PRODUCTS: "product-images",
-  USERS: "user-avatars",
+  USERS: "user-avatars", // This bucket is for user profile images
   // TEMP: "temp-uploads", // For temporary uploads before processing
 } as const
 
@@ -38,6 +54,10 @@ export const STORAGE_BUCKETS = {
  * Upload image to Supabase Storage
  *
  * Learning: Always validate file types and sizes for security
+ * NOTE: This function is typically used in SERVER-SIDE API routes,
+ * where you can safely use the SUPABASE_SERVICE_ROLE_KEY for authentication.
+ * If used client-side, ensure your Supabase Storage policies are configured
+ * to allow uploads with the ANON key.
  */
 export async function uploadImage(
   file: File,
@@ -62,7 +82,8 @@ export async function uploadImage(
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
     const filePath = path ? `${path}/${fileName}` : fileName
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage using the client-side instance (anon key)
+    // Ensure your RLS policies on the storage bucket allow this.
     const { data, error } = await supabase.storage.from(STORAGE_BUCKETS[bucket]).upload(filePath, file, {
       cacheControl: "3600", // Cache for 1 hour
       upsert: false, // Don't overwrite existing files
@@ -93,6 +114,10 @@ export async function uploadImage(
  * Delete image from Supabase Storage
  *
  * Learning: Always clean up unused files to save storage costs
+ * NOTE: This function is typically used in SERVER-SIDE API routes,
+ * where you can safely use the SUPABASE_SERVICE_ROLE_KEY for authentication.
+ * If used client-side, ensure your Supabase Storage policies are configured
+ * to allow deletes with the ANON key.
  */
 export async function deleteImage(bucket: keyof typeof STORAGE_BUCKETS, path: string): Promise<void> {
   try {
@@ -109,33 +134,6 @@ export async function deleteImage(bucket: keyof typeof STORAGE_BUCKETS, path: st
     }
     throw new Error("Failed to delete image")
   }
-}
-
-/**
- * Get optimized image URL with transformations
- *
- * Learning: Supabase can resize and optimize images on-the-fly
- */
-export function getOptimizedImageUrl(
-  bucket: keyof typeof STORAGE_BUCKETS,
-  path: string,
-  options?: {
-    width?: number
-    height?: number
-    quality?: number
-    format?: "origin"
-  },
-): string {
-  const { data } = supabase.storage.from(STORAGE_BUCKETS[bucket]).getPublicUrl(path, {
-    transform: {
-      width: options?.width,
-      height: options?.height,
-      quality: options?.quality || 80,
-      format: options?.format || "origin",
-    },
-  })
-
-  return data.publicUrl
 }
 
 /**
@@ -193,7 +191,6 @@ export function getPublicAvatarUrl(imagePath: string | null | undefined): string
   // Otherwise, assume it's a path in the 'user-avatars' bucket
   return getPublicFileUrl("USERS", imagePath, { width: 150, height: 150, quality: 75 });
 }
-
 
 
 /**

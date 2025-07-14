@@ -4,7 +4,7 @@ import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcrypt"
-import type { Role } from "@/generated/prisma"
+import type { Role } from "@/generated/prisma" // Assuming this imports 'Role' enum from Prisma
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
               email: true,
               name: true,
               passwordHash: true,
-              role: true,
+              role: true, // Make sure to select the role
               image: true,
             },
           })
@@ -40,12 +40,13 @@ export const authOptions: NextAuthOptions = {
           const isValid = await bcrypt.compare(credentials.password, user.passwordHash)
           if (!isValid) return null
 
+          // Return the user object with the role included
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             image: user.image,
-            role: user.role,
+            role: user.role, // Include role here
           }
         } catch (error) {
           console.error("Auth error:", error)
@@ -55,28 +56,35 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: "database",
-    maxAge: 30 * 24 * 60 * 60,
+    strategy: "jwt", // <--- CRITICAL CHANGE: Use JWT strategy
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async session({ session, user }) {
-      try {
-        if (user) {
-          const dbUser = user as typeof user & { role: Role }
-          session.user.id = dbUser.id
-          session.user.role = dbUser.role
-        }
-        return session
-      } catch (error) {
-        console.error("Session callback error:", error)
-        return session
+    async jwt({ token, user }) {
+      // The `user` object is available only on the first sign-in
+      // or when the session is updated (e.g., via `signIn` or `update` calls).
+      // It contains the data returned from the `authorize` function or the adapter.
+      if (user) {
+        // Cast 'user' to include 'role' for type safety
+        const dbUser = user as typeof user & { role: Role };
+        token.id = dbUser.id; // Add user ID to token
+        token.role = dbUser.role; // <--- Add role to the JWT token
       }
+      return token;
+    },
+    async session({ session, token }) {
+      // The `token` object here is the one returned from the `jwt` callback.
+      // We populate the session based on the token's contents.
+      if (token) {
+        session.user.id = token.id as string; // Get ID from token
+        session.user.role = token.role as Role; // <--- Get role from token and assign to session
+      }
+      return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: "/login",
-    signOut: "/logout",
     error: "/login",
     newUser: "/signup",
   },

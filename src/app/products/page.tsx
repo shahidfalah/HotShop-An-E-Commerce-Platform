@@ -183,7 +183,6 @@ export default function ProductsPage() { // Renamed to ProductsPage
         {products.map((product) => {
           // Calculate timeLeftMs on the client-side based on saleEnd
           let timeLeftMs = 0;
-          console.log("Product:", product)
           if (product.saleEnd && product.saleStart) {
             const saleEndDate = new Date(product.saleEnd).getTime();
             const now = new Date().getTime();

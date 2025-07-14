@@ -3,10 +3,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSession } from "next-auth/react";
 import { Button } from './ui/button';
-import { Menu, X } from 'lucide-react'; // Keep Menu, X, Search as they are used
+import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { CART_UPDATED_EVENT, WISHLIST_UPDATED_EVENT } from '@/lib/events';
+import { getPublicAvatarUrl } from '@/lib/storage/supabase'; // Corrected import path
 
 const NavLinks = () => {
     const pathname = usePathname();
@@ -85,7 +87,7 @@ const NavBarDesktop = () => {
                     <NavLinks />
                 </ul>
             </div>
-            <MetaNav desktop={true} /> {/* Pass prop to indicate desktop view */}
+            <MetaNav desktop={true} />
         </div>
     );
 };
@@ -105,7 +107,7 @@ const NavBarMobile = () => {
 
                     {/* Action Icons & Mobile Menu Button */}
                     <div className="flex items-center space-x-4">
-                        <MetaNav desktop={false} /> {/* Pass prop to indicate mobile view */}
+                        <MetaNav desktop={false} />
                         
                         {/* Mobile Menu Button */}
                         <Button
@@ -123,8 +125,6 @@ const NavBarMobile = () => {
                 {isMobileMenuOpen && (
                     <div className="md:hidden py-4 border-t border-gray-200">
                         <div className="flex flex-col space-y-4">
-                            {/* MetaNav is already conditionally rendered based on desktop prop */}
-                            {/* Mobile Navigation Links */}
                             <div className="flex flex-col space-y-2">
                                 <NavLinks />
                             </div>
@@ -136,13 +136,14 @@ const NavBarMobile = () => {
     );
 };
 
-const MetaNav = ({ desktop }) => { // Accept desktop prop
+const MetaNav = ({ desktop }) => { // Explicitly type desktop prop
     const { data: session, status } = useSession();
-    const profileImage = session?.user?.image || "/defaultProfileImage.jpeg";
-    const userName = session?.user?.name || "no-name";
+    // Use the new getPublicAvatarUrl helper
+    const profileImage = getPublicAvatarUrl(session?.user?.image); 
+    const userName = session?.user?.name || "Guest";
     const isAuthenticated = status === "authenticated";
     const [cartItemCount, setCartItemCount] = useState(0);
-    const [wishlistItemCount, setWishlistItemCount] = useState(0); // State for wishlist count
+    const [wishlistItemCount, setWishlistItemCount] = useState(0);
 
     const fetchCounts = useCallback(async () => {
         if (isAuthenticated) {
@@ -162,8 +163,7 @@ const MetaNav = ({ desktop }) => { // Accept desktop prop
                 const wishlistResponse = await fetch("/api/wishlist");
                 if (wishlistResponse.ok) {
                     const wishlistItems = await wishlistResponse.json();
-                    // Assuming each wishlist item represents 1 product, so count is just array length
-                    const totalWishlistCount = wishlistItems.data ? wishlistItems.data.length : 0; // Access data property
+                    const totalWishlistCount = wishlistItems.data ? wishlistItems.data.length : 0;
                     setWishlistItemCount(totalWishlistCount);
                 } else {
                     console.error("Failed to fetch wishlist count:", wishlistResponse.statusText);
@@ -182,8 +182,32 @@ const MetaNav = ({ desktop }) => { // Accept desktop prop
     }, [isAuthenticated]);
 
     useEffect(() => {
-        fetchCounts();
-    }, [fetchCounts]); // Depend on fetchCounts to re-run when isAuthenticated changes
+        if (isAuthenticated) {
+            fetchCounts();
+        } else {
+            setCartItemCount(0);
+            setWishlistItemCount(0);
+        }
+
+        const handleCartUpdate = () => {
+            if (isAuthenticated) {
+                fetchCounts();
+            }
+        };
+        const handleWishlistUpdate = () => {
+            if (isAuthenticated) {
+                fetchCounts();
+            }
+        };
+
+        window.addEventListener(CART_UPDATED_EVENT, handleCartUpdate);
+        window.addEventListener(WISHLIST_UPDATED_EVENT, handleWishlistUpdate);
+
+        return () => {
+            window.removeEventListener(CART_UPDATED_EVENT, handleCartUpdate);
+            window.removeEventListener(WISHLIST_UPDATED_EVENT, handleWishlistUpdate);
+        };
+    }, [isAuthenticated, fetchCounts]);
 
     if (status === "unauthenticated" || status === "loading") {
         return (
@@ -197,10 +221,8 @@ const MetaNav = ({ desktop }) => { // Accept desktop prop
     } else if (status === "authenticated") {
         return (
             <>
-                {/* Desktop and Mobile Icons (conditionally rendered based on 'desktop' prop) */}
                 <div className={`flex items-center gap-2 ${desktop ? 'hidden md:flex' : 'flex md:hidden'}`}>
                     <Link className="relative" href="/account/wishlist">
-                        {/* Using Image component with your original SVG for wishlist icon */}
                         <Image className='icon-style' src="/wishIcon.svg" alt="wish-list-icon" width={desktop ? 40 : 32} height={desktop ? 40 : 32}/>
                         {wishlistItemCount > 0 && (
                             <span className="absolute -top-1 -right-[4px] bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
@@ -209,7 +231,6 @@ const MetaNav = ({ desktop }) => { // Accept desktop prop
                         )}
                     </Link>
                     <Link className="relative" href="/cart">
-                        {/* Using Image component with your original SVG for cart icon */}
                         <Image className='icon-style' src="/bagIcon.svg" alt="bag-icon" width={desktop ? 40 : 32} height={desktop ? 40 : 32}/>
                         {cartItemCount > 0 && (
                             <span className="absolute -top-1 -right-[4px] bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
@@ -238,7 +259,7 @@ const MetaNav = ({ desktop }) => { // Accept desktop prop
                             />
                         </Link>
                     )}
-                    {!desktop && <h3 className='text-sm'>{userName}</h3>} {/* Only show username in mobile */}
+                    {!desktop && <h3 className='text-sm'>{userName}</h3>}
                 </div>
             </>
         );

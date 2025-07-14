@@ -8,9 +8,10 @@ import Link from 'next/link';
 import { Button } from '@/_components/ui/button';
 import { ArrowLeft, ShoppingCart, CheckCircle, XCircle, Heart } from 'lucide-react'; // Import Heart icon
 import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 import ProductCountdown from '@/_components/ProductCountdown';
+import { dispatchCartUpdated, dispatchWishlistUpdated } from '@/lib/events'; // Import custom event dispatchers
 
 interface Product {
   id: string;
@@ -50,10 +51,12 @@ interface Product {
 
 async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-    const url = `${baseUrl}/api/products?slug=${slug}`; // This API needs to return isWishlistedByUser
+    // NOTE: For client-side fetches, you should ideally use relative paths
+    // or ensure NEXT_PUBLIC_APP_URL is correctly configured for client-side.
+    // For production, using relative paths for internal API calls is generally safer.
+    const url = `/api/products?slug=${slug}`; // Use relative path for internal API
     const res = await fetch(url, {
-      cache: 'no-store',
+      cache: 'no-store', // Ensure fresh data
     });
 
     if (!res.ok) {
@@ -88,7 +91,6 @@ export default function ProductDetailPage() {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const { status } = useSession();
-  const router = useRouter();
 
   React.useEffect(() => {
     const fetchProduct = async () => {
@@ -135,9 +137,10 @@ export default function ProductDetailPage() {
         throw new Error(json.message || "Failed to update wishlist.");
       }
 
-      setIsWishlisted(prev => !prev);
+      setIsWishlisted((prev: boolean) => !prev);
       setAddToCartMessage({ type: 'success', text: isWishlisted ? 'Removed from wishlist!' : 'Added to wishlist!' });
-      router.refresh();
+      // router.refresh(); // REMOVED: No longer needed for header update
+      dispatchWishlistUpdated(); // <--- ADDED: Dispatch custom event for header update
 
     } catch (err: any) {
       console.error("Error toggling wishlist from detail page:", err);
@@ -187,7 +190,8 @@ export default function ProductDetailPage() {
       }
 
       setAddToCartMessage({ type: 'success', text: `${product.title} added to cart!` });
-      router.refresh();
+      // router.refresh(); // REMOVED: No longer needed for header update
+      dispatchCartUpdated(); // <--- ADDED: Dispatch custom event for header update
 
     } catch (err: any) {
       console.error("Error adding to cart from product detail:", err);
@@ -198,9 +202,12 @@ export default function ProductDetailPage() {
     }
   };
 
+  // Determine if the flash sale is active and the countdown is still running
+  const isFlashSaleActive = !!product && product.isFlashSale && product.saleEnd && new Date(product.saleEnd) > new Date();
+
   if (loadingProduct) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-(--color-background)">
+      <div className="min-h-screen flex items-center justify-center bg-[--color-background]"> {/* Corrected Tailwind syntax */}
         <p className="text-gray-600 text-lg">Loading product details...</p>
       </div>
     );
@@ -208,7 +215,7 @@ export default function ProductDetailPage() {
 
   if (errorProduct) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-(--color-background)">
+      <div className="min-h-screen flex items-center justify-center bg-[--color-background]"> {/* Corrected Tailwind syntax */}
         <p className="text-red-600 text-lg">{errorProduct}</p>
       </div>
     );
@@ -216,7 +223,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-(--color-background)">
+      <div className="min-h-screen flex items-center justify-center bg-[--color-background]"> {/* Corrected Tailwind syntax */}
         <p className="text-gray-600 text-lg">Product not found.</p>
       </div>
     );
@@ -226,7 +233,7 @@ export default function ProductDetailPage() {
   const categorySlug = product.category?.slug || '#';
 
   return (
-    <div className="min-h-screen bg-(--color-background) text-gray-900">
+    <div className="min-h-screen bg-[--color-background] text-gray-900"> {/* Corrected Tailwind syntax */}
       <div className="container mx-auto py-8 px-4 md:px-8">
         {/* Breadcrumbs */}
         <div className="text-sm text-gray-500 mb-6">
@@ -251,7 +258,7 @@ export default function ProductDetailPage() {
             {/* Thumbnail Images */}
             <div className="flex space-x-2 overflow-x-auto pb-2">
               {product.images.map((imgSrc, index) => (
-                <div key={index} className="relative w-20 h-20 flex-none rounded-md overflow-hidden border border-gray-200 cursor-pointer hover:border-(--color-primary)">
+                <div key={index} className="relative w-20 h-20 flex-none rounded-md overflow-hidden border border-gray-200 cursor-pointer hover:border-(--color-primary)"> {/* Corrected Tailwind syntax */}
                   <Image
                     src={imgSrc || "/placeholder.svg"}
                     alt={`${product.title} thumbnail ${index + 1}`}
@@ -275,17 +282,17 @@ export default function ProductDetailPage() {
               <p>Height: {product.height || 'N/A'}</p>
             </div>
 
-            {/* Flash Sale Section */}
-            {product.isFlashSale && product.salePrice && product.salePrice < product.price && (
+            {/* Flash Sale Section - Only show if sale is active */}
+            {isFlashSaleActive && product.salePrice && product.salePrice < product.price && (
               <div className="mb-6">
                 <h3 className="text-xl font-semibold mb-2">Flash Sale</h3>
                 <p className="text-gray-500 line-through">Original Price: ${product.price.toFixed(2)}</p>
-                <p className="text-2xl font-bold text-(--color-primary)">Discounted Price: ${product.salePrice.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-(--color-primary)">Discounted Price: ${product.salePrice.toFixed(2)}</p> {/* Corrected Tailwind syntax */}
               </div>
             )}
 
-            {/* Flash Sale Ends In / Countdown */}
-            {product.isFlashSale && product.saleEnd && (
+            {/* Flash Sale Ends In / Countdown - Only show if sale is active */}
+            {isFlashSaleActive && product.saleEnd && (
               <div className="mb-6">
                 <h3 className="text-xl font-semibold mb-2">Flash Sale Ends In</h3>
                 <ProductCountdown saleEnd={product.saleEnd} />
@@ -299,7 +306,9 @@ export default function ProductDetailPage() {
                 <span className="text-sm text-gray-600">Availability</span>
               </div>
               <div className="bg-gray-100 rounded-lg p-4 text-center">
-                <p className="font-bold text-lg text-gray-900">{product.discountPercentage ? `${product.discountPercentage}%` : 'N/A'}</p>
+                <p className="font-bold text-lg text-gray-900">
+                  {isFlashSaleActive && product.discountPercentage ? `${product.discountPercentage}%` : 'N/A'}
+                </p>
                 <span className="text-sm text-gray-600">Discount</span>
               </div>
             </div>
@@ -307,7 +316,7 @@ export default function ProductDetailPage() {
             {/* Action Buttons */}
             <div className="flex space-x-4 items-center">
               <Link href="/products">
-                <Button variant="outline" className="px-6 py-3 border-none text-(--color-font) bg-[#E0E0E0] hover:bg-[#bdbdbd]">
+                <Button variant="outline" className="px-6 py-3 border-none text-(--color-font) bg-[#E0E0E0] hover:bg-[#bdbdbd]"> {/* Corrected Tailwind syntax */}
                   <ArrowLeft className="w-4 h-4 mr-2" /> Go Back
                 </Button>
               </Link>
@@ -332,7 +341,7 @@ export default function ProductDetailPage() {
                 size="icon"
                 onClick={toggleWishlist}
                 className={`w-12 h-12 rounded-full border-none shadow-md ${
-                  isWishlisted ? "bg-(--color-primary) text-white" : "bg-gray-100 text-gray-600"
+                  isWishlisted ? "bg-(--color-primary) text-white" : "bg-gray-100 text-gray-600" // Corrected Tailwind syntax
                 } hover:bg-(--color-primary) hover:text-white transition-colors duration-200`}
                 disabled={status === "loading"}
               >

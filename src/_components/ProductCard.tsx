@@ -9,8 +9,8 @@ import { Button } from "@/_components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession } from 'next-auth/react'; // To check authentication status
-import { useRouter } from 'next/navigation'; // For refreshing the page/header
 import { toast } from 'react-hot-toast'; // For notifications
+import { dispatchCartUpdated, dispatchWishlistUpdated } from '@/lib/events'; // Import custom event dispatchers
 
 interface ProductCounts {
   reviews: number;
@@ -39,6 +39,7 @@ export interface Product {
   categoryId?: string;
   timeLeftMs?: number | null; // Re-added timeLeftMs to the interface as it's passed from parent
   rating?: number | null;
+  isWishlistedByUser?: boolean; // Added for client-side state
   _count?: ProductCounts;
 }
 
@@ -236,31 +237,45 @@ const StarRating = ({ rating }: { rating: number }) => (
   </div>
 );
 
-// Price Component
+// Price Component - MODIFIED
 const ProductPrice = ({
   price,
   salePrice,
+  isFlashSale,
+  timeLeftMs,
 }: {
   price: number;
   salePrice?: number | null;
-}) => (
-  <div className="flex items-center space-x-2">
-    {salePrice !== null && salePrice !== undefined && salePrice < price ? (
-      <>
-        <span className="text-lg font-semibold text-(--color-primary)">
-          ${salePrice.toFixed(2)}
-        </span>
-        <span className="text-sm text-gray-400 line-through">
+  isFlashSale?: boolean;
+  timeLeftMs?: number | null;
+}) => {
+  // Determine if sale price should be shown
+  const showSalePrice =
+    salePrice !== null &&
+    salePrice !== undefined &&
+    salePrice < price &&
+    price > 0 &&
+    (!isFlashSale || (isFlashSale && (timeLeftMs ?? 0) > 0)); // Only show if flash sale is active or not a flash sale
+
+  return (
+    <div className="flex items-center space-x-2">
+      {showSalePrice ? (
+        <>
+          <span className="text-lg font-semibold text-(--color-primary)">
+            ${salePrice.toFixed(2)}
+          </span>
+          <span className="text-sm text-gray-400 line-through">
+            ${price.toFixed(2)}
+          </span>
+        </>
+      ) : (
+        <span className="text-lg font-semibold text-gray-900">
           ${price.toFixed(2)}
         </span>
-      </>
-    ) : (
-      <span className="text-lg font-semibold text-gray-900">
-        ${price.toFixed(2)}
-      </span>
-    )}
-  </div>
-);
+      )}
+    </div>
+  );
+};
 
 // Add to Cart Button Component
 const AddToCartButton = ({
@@ -295,9 +310,20 @@ const AddToCartButton = ({
   );
 };
 
-// Discount Badge Component - Re-added
-const DiscountBadge = ({ percentage }: { percentage: number }) => {
-  if (percentage <= 0) return null;
+// Discount Badge Component - MODIFIED
+const DiscountBadge = ({
+  percentage,
+  isFlashSale,
+  timeLeftMs,
+}: {
+  percentage: number;
+  isFlashSale?: boolean;
+  timeLeftMs?: number | null;
+}) => {
+  // Only show if percentage is positive AND (not a flash sale OR flash sale is active)
+  const showBadge = percentage > 0 && (!isFlashSale || (isFlashSale && (timeLeftMs ?? 0) > 0));
+
+  if (!showBadge) return null;
 
   return (
     <div
@@ -319,17 +345,23 @@ const ProductContent = ({
   isAddingToCart: boolean;
 }) => (
   <div className="p-4 space-y-3 h-[166px] flex flex-col">
-    <h3 className="font-medium text-gray-900 text-sm leading-tight hover:text-blue-500 transition-colors duration-200 line-clamp-2">
+    <h3 className="font-medium text-gray-900 text-sm leading-tight hover:text-(--color-primary) transition-colors duration-200 line-clamp-2">
       {product.title}
     </h3>
 
-    <ProductPrice price={product.price} salePrice={product.salePrice} />
+    {/* Pass isFlashSale and timeLeftMs to ProductPrice */}
+    <ProductPrice
+      price={product.price}
+      salePrice={product.salePrice}
+      isFlashSale={product.isFlashSale}
+      timeLeftMs={product.timeLeftMs}
+    />
 
     {product.rating !== null && product.rating !== undefined && product.rating > 0 && (
       <StarRating rating={product.rating} />
     )}
     
-    <div className="flex-auto flex items-end  ">
+    <div className="flex-auto flex items-end">
       <AddToCartButton
         onAddToCart={onAddToCart}
         product={product}
@@ -351,7 +383,6 @@ export default function ProductCard({
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const { data: session, status: authStatus } = useSession(); // Get session data and status
-  const router = useRouter();
 
   // Calculate discount percentage
   const discountPercentage =
@@ -359,16 +390,21 @@ export default function ProductCard({
       ? Math.round(((product.price - product.salePrice) / product.price) * 100)
       : null;
 
-  // Calculate timeLeftMs dynamically for the timer
-  // This calculation is now done in the parent component (products/page.tsx) and passed as product.timeLeftMs
-  // However, if the parent doesn't pass it, we can re-calculate here as a fallback or for consistency.
-  // Given the error, it implies timeLeftMs IS being passed, so we will rely on it.
+  // Use timeLeftMs directly from product prop
   const timeLeftMs = product.timeLeftMs ?? 0;
 
-  // Fetch initial wishlist status
   useEffect(() => {
+    // This effect should ideally use the `isWishlistedByUser` prop if available
+    // from the product data fetched by the API. If not, it fetches it here.
+    // To avoid redundant fetches, ensure your API/ProductService populates this.
+    // For now, keeping the fetch here as a fallback/initial sync.
     const fetchWishlistStatus = async () => {
       if (authStatus === "authenticated" && session?.user?.id) {
+        // Prefer product.isWishlistedByUser if available and reliable
+        if (typeof product.isWishlistedByUser === 'boolean') {
+          setIsWishlisted(product.isWishlistedByUser);
+          return;
+        }
         try {
           const response = await fetch("/api/wishlist");
           if (!response.ok) {
@@ -388,7 +424,7 @@ export default function ProductCard({
     };
 
     fetchWishlistStatus();
-  }, [authStatus, product.id, session?.user?.id]); // Re-run when auth status or product ID changes
+  }, [authStatus, product.id, session?.user?.id, product.isWishlistedByUser]); // Re-run when auth status or product ID changes
 
   const handleWishlistClick = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigating to product detail page
@@ -416,7 +452,7 @@ export default function ProductCard({
       // Toggle wishlist status locally
       setIsWishlisted(!isWishlisted);
       toast.success(isWishlisted ? `Removed ${product.title} from wishlist!` : `Added ${product.title} to wishlist!`);
-      router.refresh(); // Revalidate data that might depend on wishlist status (e.g., header count, wishlist page)
+      dispatchWishlistUpdated(); // Dispatch custom event
 
     } catch (err: any) {
       console.error("Error updating wishlist:", err);
@@ -472,7 +508,7 @@ export default function ProductCard({
       }
 
       toast.success(`${product.title} added to cart!`);
-      router.refresh(); // Trigger a re-fetch of session data (which includes cart count in header)
+      dispatchCartUpdated(); // Dispatch custom event
 
     } catch (err: any) {
       console.error("Error adding to cart from card:", err);
@@ -482,6 +518,9 @@ export default function ProductCard({
     }
   };
 
+  // Determine if the timer is active (only if showTimer is true and timeLeftMs > 0)
+  const isTimerActive = showTimer && timeLeftMs > 0;
+
   return (
     <div
       className={`relative ${
@@ -490,17 +529,22 @@ export default function ProductCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Timer Badge - Now calculated locally */}
-      {showTimer && timeLeftMs > 0 && (
+      {/* Timer Badge - Only show if isFlashSale and timeLeftMs > 0 */}
+      { isTimerActive && (
         <TimerBadge timeLeftMs={timeLeftMs} />
       )}
 
       <div className="bg-white rounded-b-lg rounded-tr-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg group">
         <Link href={`/products/${product.slug}`} className="block">
           <div className="relative bg-gray-50 overflow-hidden">
-            {/* Discount Badge - Now calculated locally */}
-            {discountPercentage !== null && discountPercentage > 0 && (
-              <DiscountBadge percentage={discountPercentage} />
+            {/* Discount Badge - Only show if discountPercentage > 0 AND (NOT flash sale OR flash sale is active) */}
+            {discountPercentage !== null && discountPercentage > 0 &&
+             (!product.isFlashSale || (product.isFlashSale && isTimerActive)) && (
+              <DiscountBadge
+                percentage={discountPercentage}
+                isFlashSale={product.isFlashSale}
+                timeLeftMs={timeLeftMs}
+              />
             )}
             <ActionButtons
               isWishlisted={isWishlisted}

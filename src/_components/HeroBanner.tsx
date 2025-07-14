@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/_components/ui/button"
 import Image from "next/image"
+import Link from "next/link" // Added Link for CTA
 
 const bannerSlides = [
   {
@@ -11,8 +12,10 @@ const bannerSlides = [
     title: "iPhone 14 Series",
     subtitle: "Up to 10% off Voucher",
     description: "Limited-time offers on top products. Don't miss out!",
-    image: "/images/hero-up-to-10-off-voucher.png?height=400&width=600",
+    // Removed query params from static image path; let Next.js Image handle sizing
+    image: "/images/hero-up-to-10-off-voucher.png",
     cta: "Shop Now",
+    ctaLink: "/products", // Added a link for the CTA button
     bgColor: "bg-black",
   },
   {
@@ -20,8 +23,9 @@ const bannerSlides = [
     title: "Samsung Galaxy S24",
     subtitle: "Up to 15% off",
     description: "Latest technology at unbeatable prices",
-    image: "/images/hero-up-to-10-off-voucher.png?height=400&width=400",
+    image: "/images/hero-up-to-10-off-voucher.png",
     cta: "Shop Now",
+    ctaLink: "/products",
     bgColor: "bg-black",
   },
   {
@@ -29,8 +33,9 @@ const bannerSlides = [
     title: "MacBook Pro",
     subtitle: "Special Discount",
     description: "Professional performance for creators",
-    image: "/images/img2.jpg?height=400&width=600",
+    image: "/images/img2.jpg",
     cta: "Shop Now",
+    ctaLink: "/products",
     bgColor: "bg-[#0a0a0a]",
   },
 ]
@@ -75,12 +80,15 @@ export default function HeroBanner() {
 
               <p className="text-white/80 text-lg mb-8 max-w-md mx-auto lg:mx-0">{currentBanner.description}</p>
 
-              <Button
-                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-all duration-300 px-8 py-3 text-lg"
-                size="lg"
-              >
-                {currentBanner.cta} →
-              </Button>
+              {/* Added Link to the Button */}
+              <Link href={currentBanner.ctaLink || "#"} passHref>
+                <Button
+                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-all duration-300 px-8 py-3 text-lg"
+                  size="lg"
+                >
+                  {currentBanner.cta} →
+                </Button>
+              </Link>
             </div>
 
             {/* Image */}
@@ -88,9 +96,9 @@ export default function HeroBanner() {
               <div className="relative w-full max-w-md mx-auto">
                 <Image
                   src={currentBanner.image || "/placeholder.svg"}
-                  alt={currentBanner.title}
-                  width={600}
-                  height={400}
+                  alt={currentBanner.title || "Hero banner image"} // Improved alt text
+                  width={600} // Set explicit width
+                  height={400} // Set explicit height
                   className="w-full h-auto object-contain"
                   priority
                 />

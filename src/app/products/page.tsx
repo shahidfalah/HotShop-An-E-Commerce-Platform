@@ -128,7 +128,7 @@ export default function ProductsPage() { // Renamed to ProductsPage
       </div>
 
       {/* Category Filters */}
-      <div className="flex space-x-4 overflow-x-auto mb-6 pb-0 px-2 border-b border-(--color-border)">
+      <div className="flex space-x-4 overflow-x-auto mb-6 pb-0 px-2 border-b border-(--color-border) scrollbar-hide" style={{scrollbarWidth: "none"}}>
         <button
           onClick={() => handleCategoryClick(null)}
           className={`flex flex-col items-center px-3 py-2 transition text-sm ${

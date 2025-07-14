@@ -123,14 +123,13 @@ const WishlistIcon = ({
   </button>
 );
 
-// Quick View Icon Component
-const QuickViewIcon = ({ onClick }: { onClick?: (e: React.MouseEvent) => void }) => ( // Expects an event
+const QuickViewIcon = ({ onClick }: { onClick?: (e: React.MouseEvent) => void }) => ( // No productSlug needed here
   <button
-    onClick={onClick}
+    onClick={onClick} // This onClick should trigger a modal, not navigation
     className="bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110"
     aria-label="Quick view"
   >
-    <Eye className="w-4 h-4 text-gray-600 hover:text-(--color-primary) transition-colors duration-200" />
+    <Eye className="w-4 h-4 text-gray-600 hover:text-[--color-primary] transition-colors duration-200" />
   </button>
 );
 
@@ -148,7 +147,7 @@ const ActionButtons = ({
 }) => (
   <div className="absolute top-3 right-3 flex flex-col space-y-2 z-20">
     <WishlistIcon isWishlisted={isWishlisted} onClick={onWishlistClick} isUpdating={isWishlistUpdating} />
-    <QuickViewIcon onClick={onQuickViewClick} />
+    <QuickViewIcon onClick={onQuickViewClick}/>
   </div>
 );
 
@@ -382,7 +381,6 @@ export default function ProductCard({
   showTimer = false,
   variant = "default",
 }: ProductCardProps) {
-  console.log("ProductCard Props:", product)
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isWishlistUpdating, setIsWishlistUpdating] = useState(false); // New state for wishlist loading
   const [isHovered, setIsHovered] = useState(false);
@@ -400,10 +398,6 @@ export default function ProductCard({
   const timeLeftMs = product.timeLeftMs ?? 0;
 
   useEffect(() => {
-    // This effect should ideally use the `isWishlistedByUser` prop if available
-    // from the product data fetched by the API. If not, it fetches it here.
-    // To avoid redundant fetches, ensure your API/ProductService populates this.
-    // For now, keeping the fetch here as a fallback/initial sync.
     const fetchWishlistStatus = async () => {
       if (authStatus === "authenticated" && session?.user?.id) {
         // Prefer product.isWishlistedByUser if available and reliable

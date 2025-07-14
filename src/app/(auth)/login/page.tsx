@@ -15,7 +15,7 @@ export default async function LoginPage() {
   return (
     <main className="flex flex-row items-center justify-center bg-[#FAFAFA] text-(--color-font) w-full py-10">
 
-      <div className="flex flex-col items-center justify-between h-[100%] md:h-[70%] w-[88%] md:w-[60%] bg-white rounded-lg shadow-lg gap-8 md:flex-row overflow-hidden shadow-md shadow-(--color-shadow)">
+      <div className="flex flex-col items-center justify-between h-[100%] md:h-[70%] w-[88%] md:w-[60%] bg-white rounded-lg gap-8 md:flex-row overflow-hidden shadow-md shadow-(--color-shadow)">
         <div className="flex flex-col items-center justify-start p-8 ">
           <h1 className="text-[28px] font-bold mb-6 text-center">Nice to see you again in <span className="text-(--color-primary)">HotShop</span></h1>
           
@@ -35,7 +35,7 @@ export default async function LoginPage() {
           </div>
 
         </div>
-        <Image  className="h-full m-0 w-[50%] hidden md:block" src="/authImage.png" alt="image-auth" width={100} height={100}/>
+        <Image className="h-full m-0 w-[50%] hidden md:block" src="/authImage.png" alt="image-auth" width={100} height={100}/>
       </div>
 
     </main>

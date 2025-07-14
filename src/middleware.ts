@@ -32,7 +32,7 @@ export default withAuth(
         // If it returns false, NextAuth.js redirects to the signIn page.
 
         // Paths that should NOT require authentication (public routes)
-        const publicPaths = ["/", "/login", "/signup"]; // Add any other public paths
+        const publicPaths = ["/", "/#categories", "/#new-arrivals", "/login", "/signup"]; // Add any other public paths
         
         // If the path is a public path, always allow access
         if (publicPaths.some(path => req.nextUrl.pathname === path || req.nextUrl.pathname.startsWith(`${path}/`))) {

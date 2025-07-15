@@ -4,13 +4,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Heart, Eye, ShoppingCart, Loader2 } from 'lucide-react'; // Added Loader2 for loading state
+import { Heart, Eye, ShoppingCart, Loader2, XCircle } from 'lucide-react'; // Added Loader2 for loading state
 import { Button } from "@/_components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { useSession } from 'next-auth/react'; // To check authentication status
 import { toast } from 'react-hot-toast'; // For notifications
 import { dispatchCartUpdated, dispatchWishlistUpdated } from '@/lib/events'; // Import custom event dispatchers
+import { useRouter } from "next/navigation";
 
 interface ProductCounts {
   reviews: number;
@@ -40,6 +41,7 @@ export interface Product {
   timeLeftMs?: number | null; // Re-added timeLeftMs to the interface as it's passed from parent
   rating?: number | null;
   isWishlistedByUser?: boolean; // Added for client-side state
+  isInCartByUser?: boolean;
   _count?: ProductCounts;
 }
 
@@ -129,7 +131,7 @@ const QuickViewIcon = ({ onClick }: { onClick?: (e: React.MouseEvent) => void })
     className="bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110"
     aria-label="Quick view"
   >
-    <Eye className="w-4 h-4 text-gray-600 hover:text-[--color-primary] transition-colors duration-200" />
+    <Eye className="w-4 h-4 text-gray-600 hover:text-(--color-primary) transition-colors duration-200" />
   </button>
 );
 
@@ -278,38 +280,58 @@ const ProductPrice = ({
   );
 };
 
-// Add to Cart Button Component
+// Add to Cart Button Component - MODIFIED
 const AddToCartButton = ({
   onAddToCart,
+  onRemoveFromCart, // NEW: Handler for removing from cart
   product,
   isAddingToCart,
+  isProductInCart,
 }: {
   onAddToCart: (e: React.MouseEvent) => void;
+  onRemoveFromCart: (e: React.MouseEvent) => void; // NEW
   product: Product;
   isAddingToCart: boolean;
+  isProductInCart: boolean;
 }) => {
+  const buttonText = isAddingToCart
+    ? "Adding..."
+    : product.stock === 0
+    ? "Out of Stock"
+    : isProductInCart
+    ? "Remove from Cart" // Changed from "Added to Cart"
+    : "Add to Cart";
+
+  const buttonIcon = isAddingToCart
+    ? null // Loader will be handled by parent for "Adding..."
+    : product.stock === 0
+    ? null
+    : isProductInCart
+    ? <XCircle className="w-4 h-4" /> // Changed to XCircle for "Remove"
+    : <ShoppingCart className="w-4 h-4" />;
+
+  const buttonClass = isProductInCart
+    ? "w-full bg-red-500 text-white hover:bg-red-600 transition-all duration-200 py-2.5 text-sm font-medium rounded-md flex items-center justify-center gap-2" // Red for remove
+    : "w-full bg-black text-white hover:bg-gray-800 transition-all duration-200 py-2.5 text-sm font-medium rounded-md flex items-center justify-center gap-2";
+
   return (
-    <>
-      <Button
-        onClick={onAddToCart}
-        className="w-full bg-black text-white hover:bg-gray-800 transition-all duration-200 py-2.5 text-sm font-medium rounded-md flex items-center justify-center gap-2"
-        size="sm"
-        disabled={product.stock === 0 || isAddingToCart}
-      >
-        {isAddingToCart ? (
-          "Adding..."
-        ) : product.stock === 0 ? (
-          "Out of Stock"
-        ) : (
-          <>
-            <ShoppingCart className="w-4 h-4" />
-            Add to Cart
-          </>
-        )}
-      </Button>
-    </>
+    <Button
+      onClick={isProductInCart ? onRemoveFromCart : onAddToCart} // Conditional onClick
+      className={buttonClass}
+      size="sm"
+      disabled={product.stock === 0 || isAddingToCart} // Only disable if out of stock or currently adding
+    >
+      {isAddingToCart ? (
+        <Loader2 className="w-4 h-4 animate-spin" /> // Show loader when adding/removing
+      ) : (
+        <>
+          {buttonIcon} {buttonText}
+        </>
+      )}
+    </Button>
   );
 };
+
 
 // Discount Badge Component - MODIFIED
 const DiscountBadge = ({
@@ -339,13 +361,17 @@ const DiscountBadge = ({
 const ProductContent = ({
   product,
   onAddToCart,
+  onRemoveFromCart, // NEW: Pass to ProductContent
   isAddingToCart,
   expired,
+  isProductInCart, // NEW: Pass to ProductContent
 }: {
   product: ProductCardProps["product"];
   onAddToCart: (e: React.MouseEvent) => void;
+  onRemoveFromCart: (e: React.MouseEvent) => void; // NEW
   isAddingToCart: boolean;
   expired: boolean;
+  isProductInCart: boolean; // NEW
 }) => (
   <div className="p-4 space-y-3 h-[166px] flex flex-col">
     <h3 className="font-medium text-gray-900 text-sm leading-tight hover:text-(--color-primary) transition-colors duration-200 line-clamp-2">
@@ -368,8 +394,10 @@ const ProductContent = ({
     <div className="flex-auto flex items-end">
       <AddToCartButton
         onAddToCart={onAddToCart}
+        onRemoveFromCart={onRemoveFromCart} // NEW: Pass remove handler
         product={product}
         isAddingToCart={isAddingToCart}
+        isProductInCart={isProductInCart} // NEW: Pass to AddToCartButton
       />
     </div>
   </div>
@@ -381,12 +409,18 @@ export default function ProductCard({
   showTimer = false,
   variant = "default",
 }: ProductCardProps) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isWishlistUpdating, setIsWishlistUpdating] = useState(false); // New state for wishlist loading
-  const [isHovered, setIsHovered] = useState(false);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const router = useRouter(); // Added useRouter
+  // Initialize wishlist state from prop if available, otherwise default to false
+  const [isWishlisted, setIsWishlisted] = useState(product.isWishlistedByUser ?? false);
+  const [isWishlistUpdating, setIsWishlistUpdating] = useState(false);
 
-  const { data: session, status: authStatus } = useSession(); // Get session data and status
+  // Initialize cart state from prop if available, otherwise default to false
+  const [isProductInCart, setIsProductInCart] = useState(product.isInCartByUser ?? false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false); // Used for both adding and removing operations
+  
+  const [isHovered, setIsHovered] = useState(false);
+
+  const { data: session, status: authStatus } = useSession();
 
   // Calculate discount percentage
   const discountPercentage =
@@ -394,41 +428,70 @@ export default function ProductCard({
       ? Math.round(((product.price - product.salePrice) / product.price) * 100)
       : null;
 
-  // Use timeLeftMs directly from product prop
   const timeLeftMs = product.timeLeftMs ?? 0;
+  const expired = (product.saleStart && product.saleEnd && new Date(product.saleEnd) < new Date()) || false;
 
+  // Effect to fetch initial wishlist status for this specific product
   useEffect(() => {
-    const fetchWishlistStatus = async () => {
+    const fetchInitialWishlistStatus = async () => {
       if (authStatus === "authenticated" && session?.user?.id) {
-        // Prefer product.isWishlistedByUser if available and reliable
+        // If the prop is already set, use it. Otherwise, fetch.
         if (typeof product.isWishlistedByUser === 'boolean') {
           setIsWishlisted(product.isWishlistedByUser);
           return;
         }
+        
         try {
-          const response = await fetch("/api/wishlist");
+          // Fetch status for THIS specific product
+          const response = await fetch(`/api/product-status/wishlist?productId=${product.id}`);
           if (!response.ok) {
             throw new Error("Failed to fetch wishlist status.");
           }
           const data = await response.json();
-          const wishlistedItems = data.data || [];
-          const productInWishlist = wishlistedItems.some((item: any) => item.productId === product.id);
-          setIsWishlisted(productInWishlist);
+          setIsWishlisted(data.isWishlisted); // Assuming API returns { isWishlisted: boolean }
         } catch (error) {
           console.error("Error fetching wishlist status:", error);
-          // Don't show toast for this, it's a background fetch
         }
       } else {
         setIsWishlisted(false); // Not authenticated, so not wishlisted
       }
     };
 
-    fetchWishlistStatus();
-  }, [authStatus, product.id, session?.user?.id, product.isWishlistedByUser]); // Re-run when auth status or product ID changes
+    fetchInitialWishlistStatus();
+  }, [authStatus, product.id, session?.user?.id, product.isWishlistedByUser]); // Dependencies
+
+  // Effect to fetch initial cart status for this specific product
+  useEffect(() => {
+    const fetchInitialCartStatus = async () => {
+      if (authStatus === "authenticated" && session?.user?.id) {
+        // If the prop is already set, use it. Otherwise, fetch.
+        if (typeof product.isInCartByUser === 'boolean') {
+          setIsProductInCart(product.isInCartByUser);
+          return;
+        }
+
+        try {
+          // Fetch status for THIS specific product
+          const response = await fetch(`/api/product-status/cart?productId=${product.id}`);
+          if (!response.ok) {
+            throw new Error("Failed to fetch cart status.");
+          }
+          const data = await response.json();
+          setIsProductInCart(data.isInCart); // Assuming API returns { isInCart: boolean }
+        } catch (error) {
+          console.error("Error fetching cart status:", error);
+        }
+      } else {
+        setIsProductInCart(false);
+      }
+    };
+
+    fetchInitialCartStatus();
+  }, [authStatus, product.id, session?.user?.id, product.isInCartByUser]); // Dependencies
 
   const handleWishlistClick = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigating to product detail page
-    e.stopPropagation(); // Stop event propagation if clicked on button within link
+    e.preventDefault();
+    e.stopPropagation();
 
     if (authStatus === "unauthenticated") {
       toast.error('Please log in to manage your wishlist.');
@@ -449,10 +512,9 @@ export default function ProductCard({
         throw new Error(errorData.message || `Failed to ${isWishlisted ? "remove from" : "add to"} wishlist.`);
       }
 
-      // Toggle wishlist status locally
       setIsWishlisted(!isWishlisted);
       toast.success(isWishlisted ? `Removed ${product.title} from wishlist!` : `Added ${product.title} to wishlist!`);
-      dispatchWishlistUpdated(); // Dispatch custom event
+      dispatchWishlistUpdated();
 
     } catch (err: any) {
       console.error("Error updating wishlist:", err);
@@ -463,17 +525,16 @@ export default function ProductCard({
   };
 
   const handleQuickViewClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigating to product detail page
-    e.stopPropagation(); // Stop event propagation if clicked on button within link
-    console.log("Quick view:", product.title);
-    // Implement quick view modal logic here
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/products/${product.slug}`); // Navigate to product detail page
   };
 
   const handleAddToCart = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigating to product detail page
-    e.stopPropagation(); // Stop event propagation if clicked on button within link
+    e.preventDefault();
+    e.stopPropagation();
 
-    setIsAddingToCart(true);
+    setIsAddingToCart(true); // Set loading state for adding
 
     if (authStatus === "unauthenticated") {
       toast.error('Please log in to add items to your cart.');
@@ -508,20 +569,64 @@ export default function ProductCard({
       }
 
       toast.success(`${product.title} added to cart!`);
-      dispatchCartUpdated(); // Dispatch custom event
+      setIsProductInCart(true); // Set cart status to true on successful add
+      dispatchCartUpdated();
 
     } catch (err: any) {
       console.error("Error adding to cart from card:", err);
       toast.error(err.message || "An unexpected error occurred.");
     } finally {
+      setIsAddingToCart(false); // Reset loading state
+    }
+  };
+
+  // NEW: Function to handle removing from cart
+  const handleRemoveFromCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setIsAddingToCart(true); // Use the same loading state for removing
+
+    if (authStatus === "unauthenticated") {
+      toast.error('Please log in to manage your cart.');
       setIsAddingToCart(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/cart", {
+        method: "DELETE", // Use DELETE method for removal
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const errorText = await response.text();
+        console.error("Non-JSON response from /api/cart:", errorText);
+        throw new Error(`Server responded with non-JSON content (Status: ${response.status}). Check server logs for details.`);
+      }
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.message || "Failed to remove product from cart.");
+      }
+
+      toast.success(`${product.title} removed from cart!`);
+      setIsProductInCart(false); // Set cart status to false on successful removal
+      dispatchCartUpdated();
+
+    } catch (err: any) {
+      console.error("Error removing from cart from card:", err);
+      toast.error(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsAddingToCart(false); // Reset loading state
     }
   };
 
   // Determine if the timer is active (only if showTimer is true and timeLeftMs > 0)
   const isTimerActive = showTimer && timeLeftMs > 0;
-
-  const expired = (product.saleStart && product.saleEnd && new Date(product.saleEnd) < new Date()) as boolean;
 
   return (
     <div
@@ -532,14 +637,14 @@ export default function ProductCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Timer Badge - Only show if isFlashSale and timeLeftMs > 0 */}
-      { isTimerActive && (
+      {product.isFlashSale && isTimerActive && !expired && ( // Added !expired
         <TimerBadge timeLeftMs={timeLeftMs} />
       )}
 
       <div className="bg-white rounded-b-lg rounded-tr-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg group">
         <Link href={`/products/${product.slug}`} className="block">
           <div className="relative bg-gray-50 overflow-hidden">
-            {/* Discount Badge - Only show if discountPercentage > 0 AND (NOT flash sale OR flash sale is active) */}
+            {/* Discount Badge - Only show if discountPercentage > 0 AND (NOT flash sale OR flash sale is active) AND NOT expired */}
             {discountPercentage !== null && discountPercentage > 0 &&
              (!product.isFlashSale || (product.isFlashSale && isTimerActive)) && !expired && (
               <DiscountBadge
@@ -561,8 +666,10 @@ export default function ProductCard({
         <ProductContent
           product={product}
           onAddToCart={handleAddToCart}
+          onRemoveFromCart={handleRemoveFromCart} // NEW: Pass remove handler
           isAddingToCart={isAddingToCart}
           expired={expired}
+          isProductInCart={isProductInCart}
         />
 
         <div

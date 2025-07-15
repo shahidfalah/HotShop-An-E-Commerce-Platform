@@ -46,15 +46,15 @@ interface Product {
     reviews: number;
     wishlists: number;
   };
-  isWishlistedByUser?: boolean; // NEW: Indicates if the current user has wishlisted this product
+  isWishlistedByUser?: boolean; // Indicates if the current user has wishlisted this product
+  isInCartByUser?: boolean; // NEW: Indicates if the current user has this product in their cart
 }
 
 async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
-    // NOTE: For client-side fetches, you should ideally use relative paths
-    // or ensure NEXT_PUBLIC_APP_URL is correctly configured for client-side.
-    // For production, using relative paths for internal API calls is generally safer.
-    const url = `/api/products?slug=${slug}`; // Use relative path for internal API
+    // Pass session token to API for personalized data (wishlist/cart status)
+    // This is a client-side fetch, so it will send the cookies automatically.
+    const url = `/api/products?slug=${slug}`; 
     const res = await fetch(url, {
       cache: 'no-store', // Ensure fresh data
     });
@@ -87,10 +87,12 @@ export default function ProductDetailPage() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [addToCartMessage, setAddToCartMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
-  // NEW: Wishlist state for this specific product
+  // Initialize wishlist state directly from product prop if available, otherwise false
   const [isWishlisted, setIsWishlisted] = useState(false);
+  // Initialize cart state directly from product prop if available, otherwise false
+  const [isProductInCart, setIsProductInCart] = useState(false); // NEW state for cart status
 
-  const { status } = useSession();
+  const { status: authStatus } = useSession(); // Renamed to authStatus for clarity
 
   React.useEffect(() => {
     const fetchProduct = async () => {
@@ -101,6 +103,7 @@ export default function ProductDetailPage() {
         setProduct(fetchedProduct);
         if (fetchedProduct) {
           setIsWishlisted(fetchedProduct.isWishlistedByUser || false); // Initialize wishlist state
+          setIsProductInCart(fetchedProduct.isInCartByUser || false); // NEW: Initialize cart state
         } else {
           setErrorProduct("Product not found.");
         }
@@ -114,10 +117,10 @@ export default function ProductDetailPage() {
     fetchProduct();
   }, [slug]);
 
-  // NEW: Function to toggle wishlist status
+  // Function to toggle wishlist status
   const toggleWishlist = async () => {
-    if (status === "loading") return;
-    if (status === "unauthenticated") {
+    if (authStatus === "loading") return;
+    if (authStatus === "unauthenticated") {
       setAddToCartMessage({ type: 'error', text: 'Please log in to manage your wishlist.' });
       setTimeout(() => setAddToCartMessage(null), 3000);
       return;
@@ -139,8 +142,7 @@ export default function ProductDetailPage() {
 
       setIsWishlisted((prev: boolean) => !prev);
       setAddToCartMessage({ type: 'success', text: isWishlisted ? 'Removed from wishlist!' : 'Added to wishlist!' });
-      // router.refresh(); // REMOVED: No longer needed for header update
-      dispatchWishlistUpdated(); // <--- ADDED: Dispatch custom event for header update
+      dispatchWishlistUpdated(); // Dispatch custom event for header update
 
     } catch (err: any) {
       console.error("Error toggling wishlist from detail page:", err);
@@ -155,7 +157,7 @@ export default function ProductDetailPage() {
     setAddToCartMessage(null);
     setIsAddingToCart(true);
 
-    if (status === "unauthenticated") {
+    if (authStatus === "unauthenticated") {
       setAddToCartMessage({ type: 'error', text: 'Please log in to add items to your cart.' });
       setIsAddingToCart(false);
       setTimeout(() => setAddToCartMessage(null), 3000);
@@ -190,8 +192,8 @@ export default function ProductDetailPage() {
       }
 
       setAddToCartMessage({ type: 'success', text: `${product.title} added to cart!` });
-      // router.refresh(); // REMOVED: No longer needed for header update
-      dispatchCartUpdated(); // <--- ADDED: Dispatch custom event for header update
+      setIsProductInCart(true); // NEW: Update cart status locally
+      dispatchCartUpdated(); // Dispatch custom event for header update
 
     } catch (err: any) {
       console.error("Error adding to cart from product detail:", err);
@@ -203,11 +205,16 @@ export default function ProductDetailPage() {
   };
 
   // Determine if the flash sale is active and the countdown is still running
+  // Ensure product is not null before accessing its properties
   const isFlashSaleActive = !!product && product.isFlashSale && product.saleEnd && new Date(product.saleEnd) > new Date();
+
+  // Determine if the product is currently on sale and the sale is active/not expired
+  const isProductOnActiveSale = !!product && product.salePrice !== null && product.salePrice !== undefined && product.salePrice < product.price && product.price > 0 && (!product.isFlashSale || isFlashSaleActive);
+
 
   if (loadingProduct) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[--color-background]"> {/* Corrected Tailwind syntax */}
+      <div className="min-h-screen flex items-center justify-center bg-(--color-background)">
         <p className="text-gray-600 text-lg">Loading product details...</p>
       </div>
     );
@@ -215,7 +222,7 @@ export default function ProductDetailPage() {
 
   if (errorProduct) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[--color-background]"> {/* Corrected Tailwind syntax */}
+      <div className="min-h-screen flex items-center justify-center bg-(--color-background)">
         <p className="text-red-600 text-lg">{errorProduct}</p>
       </div>
     );
@@ -223,7 +230,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[--color-background]"> {/* Corrected Tailwind syntax */}
+      <div className="min-h-screen flex items-center justify-center bg-(--color-background)">
         <p className="text-gray-600 text-lg">Product not found.</p>
       </div>
     );
@@ -233,7 +240,7 @@ export default function ProductDetailPage() {
   const categorySlug = product.category?.slug || '#';
 
   return (
-    <div className="min-h-screen bg-[--color-background] text-gray-900"> {/* Corrected Tailwind syntax */}
+    <div className="min-h-screen bg-(--color-background) text-gray-900">
       <div className="container mx-auto py-8 px-4 md:px-8">
         {/* Breadcrumbs */}
         <div className="text-sm text-gray-500 mb-6">
@@ -258,7 +265,7 @@ export default function ProductDetailPage() {
             {/* Thumbnail Images */}
             <div className="flex space-x-2 overflow-x-auto pb-2">
               {product.images.map((imgSrc, index) => (
-                <div key={index} className="relative w-20 h-20 flex-none rounded-md overflow-hidden border border-gray-200 cursor-pointer hover:border-(--color-primary)"> {/* Corrected Tailwind syntax */}
+                <div key={index} className="relative w-20 h-20 flex-none rounded-md overflow-hidden border border-gray-200 cursor-pointer hover:border-[--color-primary]">
                   <Image
                     src={imgSrc || "/placeholder.svg"}
                     alt={`${product.title} thumbnail ${index + 1}`}
@@ -287,7 +294,7 @@ export default function ProductDetailPage() {
               <div className="mb-6">
                 <h3 className="text-xl font-semibold mb-2">Flash Sale</h3>
                 <p className="text-gray-500 line-through">Original Price: ${product.price.toFixed(2)}</p>
-                <p className="text-2xl font-bold text-(--color-primary)">Discounted Price: ${product.salePrice.toFixed(2)}</p> {/* Corrected Tailwind syntax */}
+                <p className="text-2xl font-bold text-[--color-primary]">Discounted Price: ${product.salePrice.toFixed(2)}</p>
               </div>
             )}
 
@@ -307,7 +314,7 @@ export default function ProductDetailPage() {
               </div>
               <div className="bg-gray-100 rounded-lg p-4 text-center">
                 <p className="font-bold text-lg text-gray-900">
-                  {isFlashSaleActive && product.discountPercentage ? `${product.discountPercentage}%` : 'N/A'}
+                  {isProductOnActiveSale && product.discountPercentage ? `${product.discountPercentage}%` : 'N/A'}
                 </p>
                 <span className="text-sm text-gray-600">Discount</span>
               </div>
@@ -316,34 +323,38 @@ export default function ProductDetailPage() {
             {/* Action Buttons */}
             <div className="flex space-x-4 items-center">
               <Link href="/products">
-                <Button variant="outline" className="px-6 py-3 border-none text-(--color-font) bg-[#E0E0E0] hover:bg-[#bdbdbd]"> {/* Corrected Tailwind syntax */}
+                <Button variant="outline" className="px-6 py-3 border-none text-(--color-font) bg-[#E0E0E0] hover:bg-[#bdbdbd]">
                   <ArrowLeft className="w-4 h-4 mr-2" /> Go Back
                 </Button>
               </Link>
               <Button
                 onClick={handleAddToCart}
                 className="px-8 py-3 bg-(--color-primary) text-white hover:bg-(--color-primary-hover) shadow-md"
-                disabled={isAddingToCart || product.stock === 0}
+                disabled={isAddingToCart || product.stock === 0 || isProductInCart} // Disable if already in cart
               >
                 {isAddingToCart ? (
                   "Adding..."
                 ) : product.stock === 0 ? (
                   "Out of Stock"
+                ) : isProductInCart ? ( // Show "Added to Cart" if already in cart
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" /> Added to Cart
+                  </>
                 ) : (
                   <>
                     <ShoppingCart className="w-5 h-5 mr-2" /> Add to Cart
                   </>
                 )}
               </Button>
-              {/* NEW: Wishlist Button for Product Detail Page */}
+              {/* Wishlist Button for Product Detail Page */}
               <Button
                 variant="outline"
                 size="icon"
                 onClick={toggleWishlist}
                 className={`w-12 h-12 rounded-full border-none shadow-md ${
-                  isWishlisted ? "bg-(--color-primary) text-white" : "bg-gray-100 text-gray-600" // Corrected Tailwind syntax
-                } hover:bg-(--color-primary) hover:text-white transition-colors duration-200`}
-                disabled={status === "loading"}
+                  isWishlisted ? "bg-(--color-primary) text-white" : "bg-gray-100 text-gray-600"
+                } hover:bg-[--color-primary] hover:text-white transition-colors duration-200`}
+                disabled={authStatus === "loading"}
               >
                 <Heart className={`w-6 h-6 ${isWishlisted ? "fill-white" : "fill-none"}`} />
               </Button>

@@ -20,61 +20,49 @@ export async function GET(req: NextRequest) {
     let products: any[] = [];
 
     if (slug) {
+      // Pass userId to findProductBySlug
       const product = await ProductService.findProductBySlug(slug, userId || undefined);
       if (product) {
         products = [product]; // Wrap the single product in an array for consistent mapping
       } else {
         console.log("API: No product found for slug:", slug);
       }
-    } else if (type === "isFlashSale") { // Corrected: "isFlashSale" without trailing space
-      // console.log("API: Fetching Flash Sale Products...");
-      products = await ProductService.findFlashSaleProducts(categoryId || undefined);
-      // console.log("API: Fetched Flash Sale Products (type=isFlashSale):", products.length);
+    } else if (type === "isFlashSale") {
+      // Pass userId to findFlashSaleProducts
+      products = await ProductService.findFlashSaleProducts(categoryId || undefined, userId || undefined);
     } else if (type === "latest") {
-      // console.log("API: Fetching Latest Products...");
       const limit = parseInt(limitParam || "4", 10);
-      products = await ProductService.findLatestProducts(limit);
-      // console.log("API: Fetched Latest Products (type=latest):", products.length);
+      // Pass userId to findLatestProducts
+      products = await ProductService.findLatestProducts(limit, userId || undefined);
     } else if (type === "discounted") {
-      // console.log("API: Processing request for 'discounted' products...");
-      const allActiveProducts = await ProductService.findAllProducts(); // findAllProducts now returns formatted products
-      // console.log("API: Total active products from findAllProducts() for discounted calc:", allActiveProducts.length);
+      // findAllProducts now accepts userId
+      const allActiveProducts = await ProductService.findAllProducts(undefined, userId || undefined); 
 
       const limit = parseInt(limitParam || "8", 10);
 
       const productsWithDiscount = allActiveProducts
-        .filter(p => p.discountPercentage && p.discountPercentage > 0); // Filter for actual positive discounts
-
-      // console.log("API: Products with calculated positive discounts:", productsWithDiscount.length);
+        .filter(p => p.discountPercentage && p.discountPercentage > 0);
 
       products = productsWithDiscount
-        .sort((a, b) => (b.stock || 0) - (a.stock || 0)) // Sort by stock from biggest to smallest
+        .sort((a, b) => (b.stock || 0) - (a.stock || 0))
         .slice(0, limit);
-      // console.log(`API: Final 'discounted' products (top ${limit}):`, products.length);
 
     } else if (type === "bestOffer") {
-      // console.log("API: Processing request for 'bestOffer' product...");
-      const allActiveProducts = await ProductService.findAllProducts(); // findAllProducts now returns formatted products
-      // console.log("API: Total active products for bestOffer calc:", allActiveProducts.length);
+      // findAllProducts now accepts userId
+      const allActiveProducts = await ProductService.findAllProducts(undefined, userId || undefined);
 
       const productsWithDiscount = allActiveProducts
         .filter(p => p.discountPercentage && p.discountPercentage > 0);
 
-      // console.log("API: Products with calculated positive discounts for bestOffer:", productsWithDiscount.length);
-
       products = productsWithDiscount
         .sort((a, b) => (b.discountPercentage || 0) - (a.discountPercentage || 0))
         .slice(0, 1);
-      // console.log("API: Final 'bestOffer' product (count):", products.length);
 
     } else {
       // Default behavior: Fetch all active products (for the new /products page)
-      // console.log("API: No specific type or slug. Fetching all active products.");
-      products = await ProductService.findAllProducts(categoryId || undefined); // findAllProducts now returns formatted products
-      // console.log("API: Fetched All Active Products (default behavior):", products.length);
+      // Pass userId to findAllProducts
+      products = await ProductService.findAllProducts(categoryId || undefined, userId || undefined);
     }
-
-    // console.log("==============================API: Products ready to be sent (count):", products.length);
 
     // For single product requests (by slug), return the single product directly, not an array
     if (slug) {

@@ -2,7 +2,6 @@
 // src/lib/database/product.service.ts
 import { prisma } from "@/lib/prisma";
 import { supabase } from "@/lib/storage/supabase"; // Import supabase client
-import { WishlistService } from "./wishlist.service"; // Import WishlistService
 import slugify from "slugify"; // Import slugify library
 
 // Helper function to get public URL for an image filename
@@ -163,11 +162,11 @@ export class ProductService {
   }
 
   /**
-   * Finds a product by its slug, including related data and wishlist status for a given user.
+   * Finds a product by its slug, including related data and wishlist/cart status for a given user.
    * This is the method to use for the product detail page.
    * @param slug The slug of the product.
-   * @param userId Optional user ID to check wishlist status.
-   * @returns The product object with `isWishlistedByUser` or null if not found.
+   * @param userId Optional user ID to check wishlist and cart status.
+   * @returns The product object with `isWishlistedByUser` and `isInCartByUser` or null if not found.
    */
   static async findProductBySlug(slug: string, userId?: string) {
     try {
@@ -197,10 +196,13 @@ export class ProductService {
         return null;
       }
 
-      // Determine if the product is wishlisted by the user
+      // Determine if the product is wishlisted and in cart by the user
       let isWishlistedByUser = false;
+      let isInCartByUser = false;
       if (userId) {
-        isWishlistedByUser = await WishlistService.isProductWishlisted(userId, product.id);
+        const status = await ProductService.checkProductStatusForUser(product.id, userId);
+        isWishlistedByUser = status.isWishlisted;
+        isInCartByUser = status.isInCart;
       }
 
       // Format product data for client (prices, images, dimensions, calculated fields)
@@ -209,6 +211,7 @@ export class ProductService {
       return {
         ...formattedProduct,
         isWishlistedByUser: isWishlistedByUser, // Add wishlist status
+        isInCartByUser: isInCartByUser,       // Add cart status
       };
 
     } catch (error) {
@@ -221,7 +224,7 @@ export class ProductService {
    * Finds all active products. Can be filtered by category.
    * This method is perfect for your new /products page.
    * @param categoryId Optional category ID to filter by.
-   * @param userId Optional user ID to check wishlist status.
+   * @param userId Optional user ID to check wishlist and cart status for each product.
    * @returns An array of products.
    */
   static async findAllProducts(categoryId?: string, userId?: string) {
@@ -242,17 +245,21 @@ export class ProductService {
       }
     });
 
-    // Map and format products, and check wishlist status for each
+    // Map and format products, and check wishlist/cart status for each
     const formattedProducts = await Promise.all(
       products.map(async (product) => {
         const formatted = formatProductForClient(product);
         let isWishlistedByUser = false;
+        let isInCartByUser = false;
         if (userId) {
-          isWishlistedByUser = await WishlistService.isProductWishlisted(userId, product.id);
+          const status = await ProductService.checkProductStatusForUser(product.id, userId);
+          isWishlistedByUser = status.isWishlisted;
+          isInCartByUser = status.isInCart;
         }
         return {
           ...formatted,
           isWishlistedByUser: isWishlistedByUser,
+          isInCartByUser: isInCartByUser,
         };
       })
     );
@@ -262,7 +269,7 @@ export class ProductService {
   /**
    * Finds products currently on flash sale. Can be filtered by category.
    * @param categoryId Optional category ID to filter by.
-   * @param userId Optional user ID to check wishlist status.
+   * @param userId Optional user ID to check wishlist and cart status for each product.
    * @returns An array of flash sale products.
    */
   static async findFlashSaleProducts(categoryId?: string, userId?: string) {
@@ -287,17 +294,21 @@ export class ProductService {
       }
     });
 
-    // Map and format products, and check wishlist status for each
+    // Map and format products, and check wishlist/cart status for each
     const formattedProducts = await Promise.all(
       products.map(async (product) => {
         const formatted = formatProductForClient(product);
         let isWishlistedByUser = false;
+        let isInCartByUser = false;
         if (userId) {
-          isWishlistedByUser = await WishlistService.isProductWishlisted(userId, product.id);
+          const status = await ProductService.checkProductStatusForUser(product.id, userId);
+          isWishlistedByUser = status.isWishlisted;
+          isInCartByUser = status.isInCart;
         }
         return {
           ...formatted,
           isWishlistedByUser: isWishlistedByUser,
+          isInCartByUser: isInCartByUser,
         };
       })
     );
@@ -307,7 +318,7 @@ export class ProductService {
   /**
    * Finds the latest active products.
    * @param limit The maximum number of products to return.
-   * @param userId Optional user ID to check wishlist status.
+   * @param userId Optional user ID to check wishlist and cart status for each product.
    * @returns An array of latest products.
    */
   static async findLatestProducts(limit: number = 8, userId?: string) {
@@ -328,17 +339,21 @@ export class ProductService {
       }
     });
 
-    // Map and format products, and check wishlist status for each
+    // Map and format products, and check wishlist/cart status for each
     const formattedProducts = await Promise.all(
       products.map(async (product) => {
         const formatted = formatProductForClient(product);
         let isWishlistedByUser = false;
+        let isInCartByUser = false;
         if (userId) {
-          isWishlistedByUser = await WishlistService.isProductWishlisted(userId, product.id);
+          const status = await ProductService.checkProductStatusForUser(product.id, userId);
+          isWishlistedByUser = status.isWishlisted;
+          isInCartByUser = status.isInCart;
         }
         return {
           ...formatted,
           isWishlistedByUser: isWishlistedByUser,
+          isInCartByUser: isInCartByUser,
         };
       })
     );
@@ -355,5 +370,50 @@ export class ProductService {
         isActive: true,
       },
     });
+  }
+
+  /**
+   * Checks if a specific product is in a user's cart or wishlist.
+   * This function is intended for server-side use.
+   * @param productId The ID of the product to check.
+   * @param userId The ID of the user.
+   * @returns An object containing `isInCart` and `isWishlisted` boolean flags.
+   */
+  static async checkProductStatusForUser(
+    productId: string,
+    userId: string
+  ): Promise<{ isInCart: boolean; isWishlisted: boolean }> {
+    try {
+      // Check if product is in cart
+      const cartItem = await prisma.cartItem.findUnique({
+        where: {
+          userId_productId: { // Assumes unique compound key on userId and productId
+            userId: userId,
+            productId: productId,
+          },
+        },
+        select: { id: true }, // Select only ID for efficiency
+      });
+
+      // Check if product is in wishlist
+      const wishlistItem = await prisma.wishlist.findUnique({
+        where: {
+          userId_productId: { // Assumes unique compound key on userId and productId
+            userId: userId,
+            productId: productId,
+          },
+        },
+        select: { id: true }, // Select only ID for efficiency
+      });
+
+      return {
+        isInCart: !!cartItem, // True if cartItem exists, false otherwise
+        isWishlisted: !!wishlistItem, // True if wishlistItem exists, false otherwise
+      };
+    } catch (error) {
+      console.error(`Error checking product status for user ${userId} and product ${productId}:`, error);
+      // In case of an error, assume false to prevent UI issues, but log the error.
+      return { isInCart: false, isWishlisted: false };
+    }
   }
 }

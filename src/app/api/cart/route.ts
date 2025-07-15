@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { CartService } from "@/lib/database/cart.service";
 import { supabase } from "@/lib/storage/supabase"; // Import supabase client
+import { prisma } from "@/lib/prisma";
 
 // Helper function to convert Decimal fields in product to numbers
 function formatProductPrices(product: any) {
@@ -124,6 +125,57 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(
       { message: "Failed to add item to cart", error: (error as Error).message },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/cart
+ * Removes a product from the user's cart by productId.
+ * This handler expects productId in the request body.
+ */
+export async function DELETE(request: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { productId } = body; // Expect productId from the request body
+
+    if (!productId) {
+      return NextResponse.json({ message: "Product ID is required." }, { status: 400 });
+    }
+
+    // Find the cart item using the compound unique key
+    const cartItem = await prisma.cartItem.findUnique({
+      where: {
+        userId_productId: {
+          userId: session.user.id,
+          productId: productId,
+        },
+      },
+    });
+
+    if (!cartItem) {
+      return NextResponse.json({ message: "Item not found in cart for this user and product." }, { status: 404 });
+    }
+
+    // Delete the cart item
+    await prisma.cartItem.delete({
+      where: {
+        id: cartItem.id, // Use the unique ID of the cart item found
+      },
+    });
+
+    return NextResponse.json({ success: true, message: "Product removed from cart." });
+  } catch (error) {
+    console.error("[API/CART/DELETE] Error removing from cart:", error);
+    return NextResponse.json(
+      { message: "Failed to remove product from cart", error: (error as Error).message },
       { status: 500 }
     );
   }

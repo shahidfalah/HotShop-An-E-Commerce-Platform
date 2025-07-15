@@ -7,6 +7,7 @@ import { Input } from "@/_components/ui/input";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, Minus, Plus, XCircle } from "lucide-react"; // Added XCircle for remove button
+import { dispatchCartUpdated } from '@/lib/events'; // Import dispatchCartUpdated
 
 // Define interfaces for cart item and product structure
 interface CartProduct {
@@ -103,6 +104,7 @@ export default function CartPage() {
   const handleRemoveItem = useCallback(async (cartItemId: string) => {
     // Optimistic update
     setCartItems(prevItems => prevItems.filter(item => item.id !== cartItemId));
+    dispatchCartUpdated(); // Dispatch immediately for responsive header update
 
     try {
       const response = await fetch(`/api/cart/${cartItemId}`, {

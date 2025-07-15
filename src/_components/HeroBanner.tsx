@@ -33,7 +33,7 @@ const bannerSlides = [
     title: "MacBook Pro",
     subtitle: "Special Discount",
     description: "Professional performance for creators",
-    image: "/images/img2.jpg",
+    image: "/images/hero-up-to-10-off-voucher.png",
     cta: "Shop Now",
     ctaLink: "/products",
     bgColor: "bg-[#0a0a0a]",

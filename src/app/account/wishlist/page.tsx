@@ -3,12 +3,14 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Heart, ShoppingCart, Loader2, XCircle as XCircleIcon, CheckCircle } from "lucide-react"; // Renamed XCircle to XCircleIcon to avoid conflict with XCircle component
+import { ArrowLeft, Heart, ShoppingCart, Loader2, XCircle as XCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/_components/ui/button";
+import { dispatchCartUpdated, dispatchWishlistUpdated } from '@/lib/events';
+import { toast } from 'react-hot-toast'; // Import toast for notifications
 
 // Define interfaces based on your API response for wishlist items
 interface WishlistedProduct {
@@ -19,6 +21,7 @@ interface WishlistedProduct {
   salePrice: number | null;
   images: string[];
   stock: number;
+  isInCartByUser?: boolean; // Expected from server-side fetch
 }
 
 interface WishlistItem {
@@ -31,12 +34,12 @@ interface WishlistItem {
 
 export default function WishlistPage() {
   const router = useRouter();
-  const { status } = useSession();
+  const { status: authStatus } = useSession(); // Renamed to authStatus for clarity
 
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [isAddingOrRemovingCart, setIsAddingOrRemovingCart] = useState<string | null>(null); // To track loading state per product ID
 
   const fetchWishlist = useCallback(async () => {
     setLoading(true);
@@ -62,15 +65,14 @@ export default function WishlistPage() {
   }, []);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (authStatus === "unauthenticated") {
       router.push('/login');
-    } else if (status === "authenticated") {
+    } else if (authStatus === "authenticated") {
       fetchWishlist();
     }
-  }, [status, router, fetchWishlist]);
+  }, [authStatus, router, fetchWishlist]);
 
   const handleRemoveFromWishlist = async (productId: string) => {
-    setActionMessage(null);
     try {
       const response = await fetch("/api/wishlist", {
         method: "DELETE",
@@ -84,26 +86,45 @@ export default function WishlistPage() {
         throw new Error(json.message || "Failed to remove item from wishlist.");
       }
 
-      setActionMessage({ type: 'success', text: 'Item removed from wishlist!' });
+      toast.success('Item removed from wishlist!');
       fetchWishlist(); // Re-fetch wishlist to update UI
-      router.refresh(); // Revalidate data across the app
+      dispatchWishlistUpdated(); // Dispatch custom event for header update
 
     } catch (err: any) {
       console.error("Error removing from wishlist:", err);
-      setActionMessage({ type: 'error', text: err.message || "An error occurred." });
-    } finally {
-      setTimeout(() => setActionMessage(null), 3000);
+      toast.error(err.message || "An error occurred.");
     }
   };
 
-  const handleAddToCart = async (productId: string, productTitle: string) => {
-    setActionMessage(null);
+  // NEW: Function to handle adding to cart (from ProductCard logic)
+  const handleAddToCart = async (productId: string, productTitle: string, productStock: number) => {
+    setIsAddingOrRemovingCart(productId); // Set loading state for this specific product
+
+    if (authStatus === "unauthenticated") {
+      toast.error('Please log in to add items to your cart.');
+      setIsAddingOrRemovingCart(null);
+      return;
+    }
+
+    if (productStock === 0) {
+      toast.error('This product is out of stock.');
+      setIsAddingOrRemovingCart(null);
+      return;
+    }
+
     try {
       const response = await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, quantity: 1 }),
+        body: JSON.stringify({ productId: productId, quantity: 1 }), // Add 1 item by default
       });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const errorText = await response.text();
+        console.error("Non-JSON response from /api/cart:", errorText);
+        throw new Error(`Server responded with non-JSON content (Status: ${response.status}). Check server logs for details.`);
+      }
 
       const json = await response.json();
 
@@ -111,20 +132,76 @@ export default function WishlistPage() {
         throw new Error(json.message || "Failed to add product to cart.");
       }
 
-      setActionMessage({ type: 'success', text: `${productTitle} added to cart!` });
-      // Optionally remove from wishlist after adding to cart
-      // handleRemoveFromWishlist(productId);
-      router.refresh();
+      toast.success(`${productTitle} added to cart!`);
+      // Update the local state to reflect the product is now in cart
+      setWishlistItems(prevItems =>
+        prevItems.map(item =>
+          item.productId === productId
+            ? { ...item, product: { ...item.product, isInCartByUser: true } as WishlistedProduct }
+            : item
+        )
+      );
+      dispatchCartUpdated(); // Dispatch custom event
 
     } catch (err: any) {
       console.error("Error adding to cart from wishlist:", err);
-      setActionMessage({ type: 'error', text: err.message || "An error occurred." });
+      toast.error(err.message || "An unexpected error occurred.");
     } finally {
-      setTimeout(() => setActionMessage(null), 3000);
+      setIsAddingOrRemovingCart(null); // Reset loading state
     }
   };
 
-  if (status === "loading" || loading) {
+  // NEW: Function to handle removing from cart (from ProductCard logic)
+  const handleRemoveFromCart = async (productId: string, productTitle: string) => {
+    setIsAddingOrRemovingCart(productId); // Use the same loading state for removing
+
+    if (authStatus === "unauthenticated") {
+      toast.error('Please log in to manage your cart.');
+      setIsAddingOrRemovingCart(null);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/cart", {
+        method: "DELETE", // Use DELETE method for removal
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: productId }),
+      });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const errorText = await response.text();
+        console.error("Non-JSON response from /api/cart:", errorText);
+        throw new Error(`Server responded with non-JSON content (Status: ${response.status}). Check server logs for details.`);
+      }
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.message || "Failed to remove product from cart.");
+      }
+
+      toast.success(`${productTitle} removed from cart!`);
+      // Update the local state to reflect the product is no longer in cart
+      setWishlistItems(prevItems =>
+        prevItems.map(item =>
+          item.productId === productId
+            ? { ...item, product: { ...item.product, isInCartByUser: false } as WishlistedProduct }
+            : item
+        )
+      );
+      dispatchCartUpdated();
+
+    } catch (err: any) {
+      console.error("Error removing from cart from wishlist:", err);
+      toast.error(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsAddingOrRemovingCart(null); // Reset loading state
+    }
+  };
+
+
+  if (authStatus === "loading" || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-(--color-background) text-gray-600">
         <Loader2 className="w-8 h-8 animate-spin mr-2" /> Loading wishlist...
@@ -147,7 +224,7 @@ export default function WishlistPage() {
 
   if (wishlistItems.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-(--color-background) text-gray-700 p-4 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-(--color-background) text-(--color-font) p-4 text-center">
         <Heart className="w-12 h-12 mb-4 text-gray-500" />
         <p className="text-xl font-semibold mb-2">Your Wishlist is Empty</p>
         <p className="text-lg mb-6">Start adding products you love!</p>
@@ -162,7 +239,7 @@ export default function WishlistPage() {
 
   return (
     <main className="min-h-screen bg-(--color-background) text-(--color-font) p-4 md:p-8">
-      <div className="max-w-4xl mx-auto bg-(--color-surface) rounded-lg shadow-sm border border-(--color-border) p-6 md:p-8">
+      <div className="max-w-4xl mx-auto bg-(--color-surface) rounded-lg shadow-sm border border-(--color-border] p-6 md:p-8">
         {/* Header */}
         <div className="flex items-center mb-6">
           <button onClick={() => router.back()} className="text-gray-600 hover:text-(--color-primary) transition-colors mr-3">
@@ -170,17 +247,6 @@ export default function WishlistPage() {
           </button>
           <h1 className="text-2xl md:text-3xl font-bold text-(--color-font)">My Wishlist</h1>
         </div>
-
-        {actionMessage && (
-          <div className={`mb-6 p-4 rounded-md flex items-center gap-2 ${
-            actionMessage.type === 'success'
-              ? 'bg-(--color-success-bg) text-(--color-success) border border-(--color-success)'
-              : 'bg-(--color-error-bg) text-(--color-error) border border-(--color-error-bg)'
-          }`}>
-            {actionMessage.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <XCircleIcon className="w-5 h-5" />}
-            <span>{actionMessage.text}</span>
-          </div>
-        )}
 
         {/* Wishlist Items List */}
         <div className="space-y-6">
@@ -225,12 +291,33 @@ export default function WishlistPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4 sm:mt-0 sm:ml-auto">
+                {/* Add to Cart / Remove from Cart Button */}
                 <Button
-                  onClick={() => handleAddToCart(item.productId, item.product.title)}
-                  className="bg-(--color-primary) text-(--color-background) hover:bg-(--color-primary-hover) px-4 py-2 text-sm flex items-center justify-center"
-                  disabled={item.product.stock === 0}
+                  onClick={() => item.product.isInCartByUser
+                    ? handleRemoveFromCart(item.productId, item.product.title)
+                    : handleAddToCart(item.productId, item.product.title, item.product.stock)
+                  }
+                  className={`px-4 py-2 text-sm flex items-center justify-center ${
+                    item.product.isInCartByUser
+                      ? 'bg-red-500 text-white hover:bg-red-600' // Red for remove
+                      : 'bg-(--color-primary) text-(--color-background) hover:bg-(--color-primary-hover)' // Primary for add
+                  }`}
+                  disabled={item.product.stock === 0 || isAddingOrRemovingCart === item.productId}
                 >
-                  <ShoppingCart className="w-4 h-4 mr-2" /> Add to Cart
+                  {isAddingOrRemovingCart === item.productId ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : item.product.isInCartByUser ? (
+                    <XCircleIcon className="w-4 h-4 mr-2" />
+                  ) : (
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                  )}
+                  {isAddingOrRemovingCart === item.productId ? (
+                    "Updating..."
+                  ) : item.product.isInCartByUser ? (
+                    "Remove from Cart"
+                  ) : (
+                    "Add to Cart"
+                  )}
                 </Button>
                 <Button
                   variant="outline"

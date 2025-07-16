@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/_components/ui/button"
 import Image from "next/image"
-import Link from "next/link" // Added Link for CTA
+import Link from "next/link"
 
 const bannerSlides = [
   {
@@ -12,10 +12,9 @@ const bannerSlides = [
     title: "iPhone 14 Series",
     subtitle: "Up to 10% off Voucher",
     description: "Limited-time offers on top products. Don't miss out!",
-    // Removed query params from static image path; let Next.js Image handle sizing
     image: "/images/hero-up-to-10-off-voucher.png",
     cta: "Shop Now",
-    ctaLink: "/products", // Added a link for the CTA button
+    ctaLink: "/products",
     bgColor: "bg-black",
   },
   {
@@ -96,9 +95,9 @@ export default function HeroBanner() {
               <div className="relative w-full max-w-md mx-auto">
                 <Image
                   src={currentBanner.image || "/placeholder.svg"}
-                  alt={currentBanner.title || "Hero banner image"} // Improved alt text
-                  width={600} // Set explicit width
-                  height={400} // Set explicit height
+                  alt={currentBanner.title || "Hero banner image"}
+                  width={600}
+                  height={400}
                   className="w-full h-auto object-contain"
                   priority
                 />

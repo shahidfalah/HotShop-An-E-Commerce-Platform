@@ -23,7 +23,7 @@ export interface Product { // Export Product interface as it will be used by par
   saleStart: string | null;
   saleEnd: string | null;
   isFlashSale: boolean;
-  images: string[]; // This array should now contain full public URLs
+  images: string[];
   brand: string | null;
   width: number | null;
   height: number | null;
@@ -33,26 +33,18 @@ export interface Product { // Export Product interface as it will be used by par
   updatedAt: string;
   createdById: string;
   categoryId: string;
-  timeLeftMs: number | null; // Still relevant if some discounted items are also flash sales
+  timeLeftMs: number | null;
   rating: number | null;
   _count: ProductCounts;
 }
 
-// FlashSales component now accepts 'initialProducts' as a prop
 export default function BestDiscounts({ initialProducts }: { initialProducts: Product[] }) {
-  // Products state is now initialized from props
   const [ products ] = useState<Product[]>(initialProducts);
-  // Loading and error states are managed by the parent Server Component now,
-  // or can be used for subsequent client-side actions if needed.
-  // For this component, we assume initialProducts are already loaded or handled by parent.
-
-  // The countdown timer logic is removed from here as it's not part of "Best Discounts"
-  // If you want a timer on these products, it should be handled within ProductCard if `timeLeftMs` is passed.
 
   const scrollContainer = (direction: "left" | "right") => {
     const container = document.getElementById("best-discounts-container");
     if (container) {
-      const scrollAmount = 300; // Adjust scroll amount as needed
+      const scrollAmount = 300;
       container.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",

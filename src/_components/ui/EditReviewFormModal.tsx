@@ -13,7 +13,7 @@ interface EditReviewFormModalProps {
   initialRating: number;
   initialComment: string;
   onClose: () => void;
-  onReviewUpdated: () => void; // Callback after successful update
+  onReviewUpdated: () => void;
 }
 
 export default function EditReviewFormModal({
@@ -63,7 +63,7 @@ export default function EditReviewFormModal({
       }
 
       toast.success('Review updated successfully!');
-      onReviewUpdated(); // Notify parent component
+      onReviewUpdated();
     } catch (err: any) {
       console.error("Error updating review:", err);
       setError(err.message || 'An unexpected error occurred.');

@@ -5,15 +5,13 @@ import React from "react";
 import { SprayCan } from "lucide-react";
 import { Button } from "@/_components/ui/button";
 import Image from "next/image";
-import Link from "next/link"; // Import Link for navigation
-import { Product } from "./BestDiscounts"; // Import Product interface for type consistency
+import Link from "next/link";
+import { Product } from "./BestDiscounts";
 
 export default function NewArrivals({ initialProducts }: { initialProducts: Product[] }) {
-  // Use the initialProducts prop directly
   const products = initialProducts;
 
   // Destructure the first product as main and the rest as other products
-  // Ensure robust handling if products array is empty or has fewer than 4 items
   const mainProduct = products[0];
   const otherProducts = products.slice(1);
 
@@ -54,7 +52,7 @@ export default function NewArrivals({ initialProducts }: { initialProducts: Prod
     if (!product) {
       // Return specific default for image, otherwise generic
       if (key === 'images') {
-        return "/placeholder.svg"; // Generic image fallback
+        return "/placeholder.svg";
       }
       return defaultValue;
     }
@@ -63,6 +61,7 @@ export default function NewArrivals({ initialProducts }: { initialProducts: Prod
       return product.images[0];
     }
     
+    // Return the product detail
     if (key === 'description' || key === 'title' || key === 'slug') return product[key];
     else return defaultValue;
   };

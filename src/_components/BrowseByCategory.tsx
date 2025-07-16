@@ -6,21 +6,20 @@ import { ChevronLeft, ChevronRight, FolderKanban } from "lucide-react";
 import * as LucideIcons from "lucide-react"; // Import all Lucide icons
 import { type LucideProps } from "lucide-react"; // Import LucideProps for typing
 import { Button } from "@/_components/ui/button";
-import Link from "next/link"; // For linking to category pages
+import Link from "next/link";
 
 // Define the Category interface (consistent with your API response)
 export interface Category {
   id: string;
   title: string;
   slug: string;
-  icon?: string; // Lucide icon name as a string
+  icon?: string;
 }
 
 export default function BrowseByCategory({ initialCategories }: { initialCategories: Category[] }) {
   const [categories] = useState<Category[]>(initialCategories);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null); // Use category ID or slug for active state
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  // Effect to set the first category as active initially if available
   useEffect(() => {
     if (initialCategories.length > 0 && activeCategory === null) {
       setActiveCategory(initialCategories[0].id);
@@ -94,17 +93,17 @@ export default function BrowseByCategory({ initialCategories }: { initialCategor
                       className={`flex-none w-32 h-32 rounded-lg border-2 transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center space-y-2
                         ${activeCategory === category.id
                           ? "border-(--color-primary) bg-(--color-primary) text-white shadow-lg"
-                          : "border-gray-200 bg-white text-gray-700 hover:border-(--color-primary) hover:text-(--color-primary)" // Adjusted hover color
+                          : "border-gray-200 bg-white text-gray-700 hover:border-(--color-primary) hover:text-(--color-primary)"
                         }`}
                     >
                       <span className="text-3xl">
                         {IconComponent ? (
-                          <IconComponent size={36} /> // Increased icon size for prominence
+                          <IconComponent size={36} />
                         ) : (
-                          "📦" // Fallback emoji
+                          "📦"
                         )}
                       </span>
-                      <span className="text-sm font-medium">{category.title}</span> {/* Use category.title */}
+                      <span className="text-sm font-medium">{category.title}</span>
                     </button>
                   </Link>
                 );

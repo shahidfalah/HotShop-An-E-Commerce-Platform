@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 const errorMessages: Record<string, string> = {
   CredentialsSignin: "Invalid email or password.",
   OAuthAccountNotLinked: "Account exists with another login method.",
-  // Add other error codes here as needed
 };
 
 export default function AuthError() {

@@ -4,13 +4,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Heart, Eye, ShoppingCart, Loader2, XCircle } from 'lucide-react'; // Added Loader2 for loading state
+import { Heart, Eye, ShoppingCart, Loader2, XCircle } from 'lucide-react'; 
 import { Button } from "@/_components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { useSession } from 'next-auth/react'; // To check authentication status
-import { toast } from 'react-hot-toast'; // For notifications
-import { dispatchCartUpdated, dispatchWishlistUpdated } from '@/lib/events'; // Import custom event dispatchers
+import { useSession } from 'next-auth/react';
+import { toast } from 'react-hot-toast';
+import { dispatchCartUpdated, dispatchWishlistUpdated } from '@/lib/events';
 import { useRouter } from "next/navigation";
 
 interface ProductCounts {
@@ -38,16 +38,16 @@ export interface Product {
   updatedAt?: string;
   createdById?: string;
   categoryId?: string;
-  timeLeftMs?: number | null; // Re-added timeLeftMs to the interface as it's passed from parent
+  timeLeftMs?: number | null;
   rating?: number | null;
-  isWishlistedByUser?: boolean; // Added for client-side state
+  isWishlistedByUser?: boolean;
   isInCartByUser?: boolean;
   _count?: ProductCounts;
 }
 
 interface ProductCardProps {
   product: Product;
-  showTimer?: boolean; // Controls whether the timer badge is shown
+  showTimer?: boolean;
   variant?: "default" | "large";
 }
 
@@ -99,17 +99,17 @@ const TimerBadge = ({ timeLeftMs }: { timeLeftMs: number }) => {
 const WishlistIcon = ({
   isWishlisted,
   onClick,
-  isUpdating, // New prop for loading state
+  isUpdating,
 }: {
   isWishlisted: boolean;
-  onClick: (e: React.MouseEvent) => void; // Expects an event
+  onClick: (e: React.MouseEvent) => void;
   isUpdating: boolean;
 }) => (
   <button
     onClick={onClick}
     className="bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110"
     aria-label="Add to wishlist"
-    disabled={isUpdating} // Disable button when updating
+    disabled={isUpdating}
   >
     {isUpdating ? (
       <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
@@ -125,9 +125,9 @@ const WishlistIcon = ({
   </button>
 );
 
-const QuickViewIcon = ({ onClick }: { onClick?: (e: React.MouseEvent) => void }) => ( // No productSlug needed here
+const QuickViewIcon = ({ onClick }: { onClick?: (e: React.MouseEvent) => void }) => (
   <button
-    onClick={onClick} // This onClick should trigger a modal, not navigation
+    onClick={onClick}
     className="bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110"
     aria-label="Quick view"
   >
@@ -140,11 +140,11 @@ const ActionButtons = ({
   isWishlisted,
   onWishlistClick,
   onQuickViewClick,
-  isWishlistUpdating, // Pass loading state
+  isWishlistUpdating,
 }: {
   isWishlisted: boolean;
-  onWishlistClick: (e: React.MouseEvent) => void; // Expects an event
-  onQuickViewClick?: (e: React.MouseEvent) => void; // Expects an event
+  onWishlistClick: (e: React.MouseEvent) => void;
+  onQuickViewClick?: (e: React.MouseEvent) => void;
   isWishlistUpdating: boolean;
 }) => (
   <div className="absolute top-3 right-3 flex flex-col space-y-2 z-20">
@@ -163,7 +163,7 @@ const ProductImage = ({
   variant: string;
   isHovered: boolean;
 }) => {
-  const [bgColor, setBgColor] = useState<string>("rgb(243, 244, 246)"); // Default light gray background
+  const [bgColor, setBgColor] = useState<string>("rgb(243, 244, 246)");
   const imgRef = useRef<HTMLImageElement>(null);
 
   const handleImageLoad = useCallback(() => {
@@ -171,7 +171,7 @@ const ProductImage = ({
     if (imgRef.current && imgRef.current.naturalWidth > 0 && typeof window !== 'undefined' && typeof (window as any).ColorThief !== 'undefined') {
       try {
         const colorThief = new (window as any).ColorThief();
-        const color = colorThief.getColor(imgRef.current); // Use the actual Image element
+        const color = colorThief.getColor(imgRef.current);
         if (color) {
           setBgColor(`rgb(${color[0]}, ${color[1]}, ${color[2]})`);
         }
@@ -238,7 +238,7 @@ const StarRating = ({ rating }: { rating: number }) => (
   </div>
 );
 
-// Price Component - MODIFIED
+// Price Component
 const ProductPrice = ({
   price,
   salePrice,
@@ -252,7 +252,6 @@ const ProductPrice = ({
   timeLeftMs?: number | null;
   expired? : boolean;
 }) => {
-  // Determine if sale price should be shown
   const showSalePrice =
     salePrice !== null &&
     salePrice !== undefined &&
@@ -280,16 +279,16 @@ const ProductPrice = ({
   );
 };
 
-// Add to Cart Button Component - MODIFIED
+// Add to Cart Button Component
 const AddToCartButton = ({
   onAddToCart,
-  onRemoveFromCart, // NEW: Handler for removing from cart
+  onRemoveFromCart,
   product,
   isAddingToCart,
   isProductInCart,
 }: {
   onAddToCart: (e: React.MouseEvent) => void;
-  onRemoveFromCart: (e: React.MouseEvent) => void; // NEW
+  onRemoveFromCart: (e: React.MouseEvent) => void;
   product: Product;
   isAddingToCart: boolean;
   isProductInCart: boolean;
@@ -299,7 +298,7 @@ const AddToCartButton = ({
     : product.stock === 0
     ? "Out of Stock"
     : isProductInCart
-    ? "Remove from Cart" // Changed from "Added to Cart"
+    ? "Remove from Cart"
     : "Add to Cart";
 
   const buttonIcon = isAddingToCart
@@ -307,7 +306,7 @@ const AddToCartButton = ({
     : product.stock === 0
     ? null
     : isProductInCart
-    ? <XCircle className="w-4 h-4" /> // Changed to XCircle for "Remove"
+    ? <XCircle className="w-4 h-4" />
     : <ShoppingCart className="w-4 h-4" />;
 
   const buttonClass = isProductInCart
@@ -316,13 +315,13 @@ const AddToCartButton = ({
 
   return (
     <Button
-      onClick={isProductInCart ? onRemoveFromCart : onAddToCart} // Conditional onClick
+      onClick={isProductInCart ? onRemoveFromCart : onAddToCart}
       className={buttonClass}
       size="sm"
-      disabled={product.stock === 0 || isAddingToCart} // Only disable if out of stock or currently adding
+      disabled={product.stock === 0 || isAddingToCart}
     >
       {isAddingToCart ? (
-        <Loader2 className="w-4 h-4 animate-spin" /> // Show loader when adding/removing
+        <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
         <>
           {buttonIcon} {buttonText}
@@ -333,7 +332,7 @@ const AddToCartButton = ({
 };
 
 
-// Discount Badge Component - MODIFIED
+// Discount Badge Component
 const DiscountBadge = ({
   percentage,
   isFlashSale,
@@ -361,17 +360,17 @@ const DiscountBadge = ({
 const ProductContent = ({
   product,
   onAddToCart,
-  onRemoveFromCart, // NEW: Pass to ProductContent
+  onRemoveFromCart,
   isAddingToCart,
   expired,
-  isProductInCart, // NEW: Pass to ProductContent
+  isProductInCart,
 }: {
   product: ProductCardProps["product"];
   onAddToCart: (e: React.MouseEvent) => void;
-  onRemoveFromCart: (e: React.MouseEvent) => void; // NEW
+  onRemoveFromCart: (e: React.MouseEvent) => void;
   isAddingToCart: boolean;
   expired: boolean;
-  isProductInCart: boolean; // NEW
+  isProductInCart: boolean;
 }) => (
   <div className="p-4 space-y-3 h-[166px] flex flex-col">
     <h3 className="font-medium text-gray-900 text-sm leading-tight hover:text-(--color-primary) transition-colors duration-200 line-clamp-2">
@@ -394,10 +393,10 @@ const ProductContent = ({
     <div className="flex-auto flex items-end">
       <AddToCartButton
         onAddToCart={onAddToCart}
-        onRemoveFromCart={onRemoveFromCart} // NEW: Pass remove handler
+        onRemoveFromCart={onRemoveFromCart}
         product={product}
         isAddingToCart={isAddingToCart}
-        isProductInCart={isProductInCart} // NEW: Pass to AddToCartButton
+        isProductInCart={isProductInCart}
       />
     </div>
   </div>
@@ -409,7 +408,7 @@ export default function ProductCard({
   showTimer = false,
   variant = "default",
 }: ProductCardProps) {
-  const router = useRouter(); // Added useRouter
+  const router = useRouter();
   // Initialize wishlist state from prop if available, otherwise default to false
   const [isWishlisted, setIsWishlisted] = useState(product.isWishlistedByUser ?? false);
   const [isWishlistUpdating, setIsWishlistUpdating] = useState(false);
@@ -458,7 +457,7 @@ export default function ProductCard({
     };
 
     fetchInitialWishlistStatus();
-  }, [authStatus, product.id, session?.user?.id, product.isWishlistedByUser]); // Dependencies
+  }, [authStatus, product.id, session?.user?.id, product.isWishlistedByUser]);
 
   // Effect to fetch initial cart status for this specific product
   useEffect(() => {
@@ -487,7 +486,7 @@ export default function ProductCard({
     };
 
     fetchInitialCartStatus();
-  }, [authStatus, product.id, session?.user?.id, product.isInCartByUser]); // Dependencies
+  }, [authStatus, product.id, session?.user?.id, product.isInCartByUser]);
 
   const handleWishlistClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -580,7 +579,7 @@ export default function ProductCard({
     }
   };
 
-  // NEW: Function to handle removing from cart
+  // Function to handle removing from cart
   const handleRemoveFromCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -637,7 +636,7 @@ export default function ProductCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Timer Badge - Only show if isFlashSale and timeLeftMs > 0 */}
-      {product.isFlashSale && isTimerActive && !expired && ( // Added !expired
+      {product.isFlashSale && isTimerActive && !expired && (
         <TimerBadge timeLeftMs={timeLeftMs} />
       )}
 
@@ -666,7 +665,7 @@ export default function ProductCard({
         <ProductContent
           product={product}
           onAddToCart={handleAddToCart}
-          onRemoveFromCart={handleRemoveFromCart} // NEW: Pass remove handler
+          onRemoveFromCart={handleRemoveFromCart}
           isAddingToCart={isAddingToCart}
           expired={expired}
           isProductInCart={isProductInCart}
@@ -682,7 +681,6 @@ export default function ProductCard({
   );
 }
 
-// Export individual components for reuse if needed
 export {
   TimerBadge,
   WishlistIcon,

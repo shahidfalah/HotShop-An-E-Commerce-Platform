@@ -5,12 +5,12 @@
 import React, { useState } from 'react';
 import { Button } from "@/_components/ui/button";
 import { Star, X } from 'lucide-react';
-import { toast } from 'react-hot-toast'; // Assuming you have react-hot-toast for notifications
+import { toast } from 'react-hot-toast';
 
 interface ReviewFormModalProps {
   productId: string;
   productTitle: string;
-  userId: string; // User ID is needed for the API call
+  userId: string;
   onClose: () => void;
   onReviewSubmitted: () => void;
 }
@@ -57,7 +57,7 @@ export default function ReviewFormModal({
       }
 
       toast.success('Review submitted successfully!');
-      onReviewSubmitted(); // Notify parent component that review was submitted
+      onReviewSubmitted();
     } catch (err: any) {
       console.error("Error submitting review:", err);
       setError(err.message || 'An unexpected error occurred.');

@@ -8,7 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { CART_UPDATED_EVENT, WISHLIST_UPDATED_EVENT } from '@/lib/events';
-import { getPublicAvatarUrl } from '@/lib/storage/supabase'; // Corrected import path
+import { getPublicAvatarUrl } from '@/lib/storage/supabase';
 
 const NavLinks = () => {
     const pathname = usePathname();
@@ -136,9 +136,8 @@ const NavBarMobile = () => {
     );
 };
 
-const MetaNav = ({ desktop }) => { // Explicitly type desktop prop
+const MetaNav = ({ desktop }) => {
     const { data: session, status } = useSession();
-    // Use the new getPublicAvatarUrl helper
     const profileImage = getPublicAvatarUrl(session?.user?.image); 
     const userName = session?.user?.name || "Guest";
     const isAuthenticated = status === "authenticated";

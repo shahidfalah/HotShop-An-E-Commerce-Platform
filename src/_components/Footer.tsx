@@ -1,17 +1,18 @@
 import { Facebook, Twitter, Instagram } from 'lucide-react'
+import Image from 'next/image'
 
 export default function Footer() {
   return (
     <footer className="bg-black text-white">
       {/* Main Footer Content */}
-      <div className="container mx-auto px-4 py-8 md:py-12 px-[16px] md:px-[88px]">
+      <div className="container mx-auto py-8 md:py-12 px-[16px] md:px-[88px]">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
           
           {/* Brand Section */}
           <div className='flex md:block flex-col justify-center items-center w-1/2 md:w-full'>
             <div className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-                <img src="/logo.svg" alt="logo-HotShop" />
+                <Image src="/logo.svg" alt="logo-HotShop" width={32} height={32} />
               </div>
               <span className="text-xl font-bold">HotShop</span>
             </div>

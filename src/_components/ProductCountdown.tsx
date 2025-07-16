@@ -1,5 +1,5 @@
 // src/_components/ProductCountdown.tsx
-"use client"; // This directive makes this a Client Component
+"use client";
 
 import React, { useState, useEffect } from 'react';
 

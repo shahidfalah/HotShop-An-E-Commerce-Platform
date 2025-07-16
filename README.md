@@ -73,7 +73,7 @@ Follow these steps to set up and run the HotShop project locally:
 
 ### **1\. Clone the Repository**
 
-git clone \<your-repository-url\>  
+git clone https://github.com/shahidfalah/HotShop-An-E-Commerce-Platform.git  
 cd hotshop
 
 ### **2\. Install Dependencies**

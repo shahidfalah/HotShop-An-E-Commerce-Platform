@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/_components/ProductCountdown.tsx
 "use client";
 

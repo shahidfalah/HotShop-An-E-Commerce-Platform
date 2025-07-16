@@ -133,11 +133,11 @@ This will sync your Prisma schema with your Supabase PostgreSQL database.
 npx prisma migrate dev \--name init \# Use 'init' or a descriptive name
 
 ### **6\. Run the Development Server**
-
+``
 npm run dev  
 \# or  
 yarn dev
-
+``
 Open [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000) in your browser.
 
 ## **📁 Project Structure (Key Directories)**

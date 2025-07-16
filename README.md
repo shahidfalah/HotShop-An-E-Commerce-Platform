@@ -133,7 +133,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000" # For local development
 
 This will sync your Prisma schema with your Supabase PostgreSQL database.
 ```
-npx prisma migrate dev \--name init \# Use 'init' or a descriptive name
+npx prisma migrate dev --name init # Use 'init' or a descriptive name
 ```
 ### **6\. Run the Development Server**
 ```

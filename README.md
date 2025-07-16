@@ -77,11 +77,13 @@ git clone https://github.com/shahidfalah/HotShop-An-E-Commerce-Platform.git
 ```
 
 ### **2\. Install Dependencies**
-
-npm install  
-\# or  
+```
+npm install
+```
+or
+```
 yarn install
-
+```
 ### **3\. Set up Environment Variables**
 
 Create a .env.local file in the root of your project and add the following environment variables. Replace the placeholder values with your actual credentials.

@@ -86,24 +86,23 @@ yarn install
 
 Create a .env.local file in the root of your project and add the following environment variables. Replace the placeholder values with your actual credentials.
 ```
-\# Database (Supabase PostgreSQL)  
-DATABASE\_URL="postgresql://postgres:\[YOUR\_DB\_PASSWORD\]@db.\[YOUR\_SUPABASE\_PROJECT\_REF\].supabase.co:5432/postgres?schema=public"  
-DIRECT\_URL="postgresql://postgres:\[YOUR\_DB\_PASSWORD\]@db.\[YOUR\_SUPABASE\_PROJECT\_REF\].supabase.co:5432/postgres" \# IMPORTANT: Add this for Prisma
+Database (Supabase PostgreSQL)  
+DATABASE\_URL="postgresql://postgres:[YOUR_DB_PASSWORD]:[YOUR_SUPABASE_PROJECT_REF].supabase.co:5432/postgres?schema=public"  
+DIRECT_URL="postgresql://postgres:[YOUR_DB_PASSWORD]:[YOUR_SUPABASE_PROJECT_REF].supabase.co:5432/postgres" # IMPORTANT: Add this for Prisma
 
-\# Supabase Storage (for images)  
-NEXT\_PUBLIC\_SUPABASE\_URL="https://\[YOUR\_SUPABASE\_PROJECT\_REF\].supabase.co"  
-\# Supabase Service Role Key (for server-side privileged operations, keep secret\!)  
-SUPABASE\_SERVICE\_ROLE\_KEY="\[SUPABASE\_SERVICE\_ROLE\_KEY\]"
+# Supabase Storage (for images)  
+NEXT_PUBLIC_SUPABASE_URL="https://[YOUR_SUPABASE_PROJECT_REF].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="[NEXT_PUBLIC_SUPABASE_ANON_KEY]"
 
-\# NextAuth.js  
-NEXTAUTH\_SECRET="\[A\_VERY\_LONG\_RANDOM\_STRING\_FOR\_PRODUCTION\]" \# Generate with \`openssl rand \-base64 32\` or similar
+# NextAuth.js  
+NEXTAUTH_SECRET="[A_VERY_LONG_RANDOM_STRING_FOR_PRODUCTION]" # Generate with `openssl rand -base64 32` or similar
 
-\# Google OAuth (Optional, if you enable Google login)  
-GOOGLE\_CLIENT\_ID="\[YOUR\_GOOGLE\_CLIENT\_ID\]"  
-GOOGLE\_CLIENT\_SECRET="\[YOUR\_GOOGLE\_CLIENT\_SECRET\]"
+# Google OAuth (Optional, if you enable Google login)  
+GOOGLE_CLIENT_ID="[YOUR_GOOGLE_CLIENT_ID]"  
+GOOGLE_CLIENT_SECRET="[YOUR_GOOGLE_CLIENT_SECRET]"
 
-\# Application URL (for server-side fetches in API routes and NextAuth.js callbacks)  
-NEXT\_PUBLIC\_APP\_URL="http://localhost:3000" \# For local development
+# Application URL (for server-side fetches in API routes and NextAuth.js callbacks)  
+NEXT_PUBLIC_APP_URL="http://localhost:3000" # For local development
 ```
 **Important Notes:**
 

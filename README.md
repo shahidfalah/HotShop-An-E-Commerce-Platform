@@ -110,7 +110,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000" # For local development
 * **NEXT\_PUBLIC\_SUPABASE\_URL & SUPABASE\_SERVICE\_ROLE\_KEY**: Get these from your Supabase Project Settings \-\> API. The **ANON\_KEY** is safe to expose to the browser for public reads.  
 * **SUPABASE\_SERVICE\_ROLE\_KEY**: **This key is highly privileged and must be kept secret.** It should never be exposed on the client-side. Use it only in server-side code (e.g., API routes, server components) for operations that require bypassing Row Level Security (RLS) or performing administrative tasks.  
 * **NEXTAUTH\_SECRET**: **Crucial for production security.** Generate a strong, random string.  
-* **NEXT\_PUBLIC\_APP\_URL**: This is used for server-side fetches within API routes and for NextAuth.js callbacks. In production, this should be your deployed domain (e.g., https://your-hotshop-domain.vercel.app). **Ensure this matches the Authorized Redirect URIs configured in your Google Cloud Console for OAuth.**
+* **NEXT\_PUBLIC\_APP\_URL**: This is used for server-side fetches within API routes and for NextAuth.js callbacks. In production, this should be your deployed domain (e.g., https://hotshop-ten.vercel.app). **Ensure this matches the Authorized Redirect URIs configured in your Google Cloud Console for OAuth.**
 
 ### **4\. Set up Supabase Storage**
 

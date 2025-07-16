@@ -33,7 +33,7 @@ HotShop is a full-stack e-commerce application built with Next.js 15 (App Router
 * **Next.js 15 (App Router):** React framework for building performant web applications with Server Components and Client Components.  
 * **React:** JavaScript library for building user interfaces.  
 * **TypeScript:** Strongly-typed superset of JavaScript for enhanced code quality and maintainability.  
-* **Tailwind CSS:** Utility-first CSS framework for rapid and consistent styling. **(Note: Uses \[--var-name\] syntax for custom CSS variables, e.g., bg-\[--color-primary\])**  
+* **Tailwind CSS:** Utility-first CSS framework for rapid and consistent styling. **(Note: Uses \(--var-name\) syntax for custom CSS variables, e.g., bg-\(--color-primary\) )**  
 * **Lucide React:** Beautiful, open-source icons.  
 * **react-hot-toast:** Lightweight and customizable toast notifications.  
 * **colorthief:** (Client-side) For extracting dominant colors from images for dynamic backgrounds.
@@ -52,7 +52,7 @@ HotShop is a full-stack e-commerce application built with Next.js 15 (App Router
 
 ## **⚡ Performance Optimizations**
 
-A strong focus has been placed on optimizing the application's performance, as evidenced by high Lighthouse scores (typically 95+ for Performance on both mobile and desktop). Key strategies implemented include:
+A strong focus has been placed on optimizing the application's performance, as evidenced by high Lighthouse scores (typically 90+ for Performance on both mobile and desktop). Key strategies implemented include:
 
 * **Next.js Server Components:** Leveraging Server Components to fetch data and render HTML on the server, reducing client-side JavaScript and improving Time To First Byte (TTFB).  
 * **Server-Side Data Enrichment:** Product, cart, and wishlist statuses are checked on the server and passed to client components, ensuring immediate and accurate UI rendering on page load.  
@@ -72,9 +72,9 @@ Follow these steps to set up and run the HotShop project locally:
 * Git
 
 ### **1\. Clone the Repository**
-
+```
 git clone https://github.com/shahidfalah/HotShop-An-E-Commerce-Platform.git  
-cd hotshop
+```
 
 ### **2\. Install Dependencies**
 

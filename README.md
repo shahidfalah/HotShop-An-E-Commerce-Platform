@@ -1,6 +1,7 @@
 # **HotShop: An E-Commerce Platform**
 
 HotShop is a full-stack e-commerce application built with Next.js 15 (App Router), designed for flash sales and efficient product management. It provides a seamless shopping experience for users and a robust administration panel for store owners.
+<video src="/shortShowcase.mov" title="Title"></video>"
 
 ## **✨ Features**
 

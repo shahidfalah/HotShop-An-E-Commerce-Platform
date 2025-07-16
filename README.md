@@ -85,7 +85,7 @@ yarn install
 ### **3\. Set up Environment Variables**
 
 Create a .env.local file in the root of your project and add the following environment variables. Replace the placeholder values with your actual credentials.
-
+```
 \# Database (Supabase PostgreSQL)  
 DATABASE\_URL="postgresql://postgres:\[YOUR\_DB\_PASSWORD\]@db.\[YOUR\_SUPABASE\_PROJECT\_REF\].supabase.co:5432/postgres?schema=public"  
 DIRECT\_URL="postgresql://postgres:\[YOUR\_DB\_PASSWORD\]@db.\[YOUR\_SUPABASE\_PROJECT\_REF\].supabase.co:5432/postgres" \# IMPORTANT: Add this for Prisma
@@ -104,7 +104,7 @@ GOOGLE\_CLIENT\_SECRET="\[YOUR\_GOOGLE\_CLIENT\_SECRET\]"
 
 \# Application URL (for server-side fetches in API routes and NextAuth.js callbacks)  
 NEXT\_PUBLIC\_APP\_URL="http://localhost:3000" \# For local development
-
+```
 **Important Notes:**
 
 * **DATABASE\_URL & DIRECT\_URL**: Get these from your Supabase Project Settings \-\> Database \-\> Connection String. Ensure you use the prisma user or a user with full access. DIRECT\_URL is crucial for Prisma's internal operations and should be the same as DATABASE\_URL but without the ?schema=public part.  

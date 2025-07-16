@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/account/orders/page.tsx
-// This is a Server Component. No "use client" directive.
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -33,7 +32,7 @@ interface OrderItemWithProduct {
 interface Order {
   id: string;
   total: number;
-  status: string; // OrderStatus enum string
+  status: string;
   createdAt: Date;
   updatedAt: Date;
   userId: string;
@@ -54,7 +53,7 @@ export default async function AccountOrdersPage() {
   try {
     // Fetch ALL orders for the user, regardless of status
     const fetchedOrders = await OrderService.getAllUserOrdersWithProducts(userId);
-    orders = fetchedOrders as Order[]; // Cast to your local interface
+    orders = fetchedOrders as Order[];
   } catch (err: any) {
     console.error("Failed to fetch user orders on server:", err);
     error = err.message || "Could not load your orders.";
@@ -77,7 +76,6 @@ export default async function AccountOrdersPage() {
     }
   };
 
-  // Server-side rendering of error/no orders states
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-(--color-background) text-red-600 p-4 text-center">
@@ -156,8 +154,8 @@ export default async function AccountOrdersPage() {
                       key={item.id}
                       orderItem={item}
                       hasReviewed={hasReviewed}
-                      userId={userId} // Pass userId to the Client Component for modal
-                      orderStatus={order.status} // Pass order status to decide review button visibility
+                      userId={userId}
+                      orderStatus={order.status}
                     />
                   );
                 }))}

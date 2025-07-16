@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/account/reviews/page.tsx
-// This is a Server Component. No "use client" directive.
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ReviewService } from "@/lib/database/review.service";
-import { revalidatePath } from 'next/cache'; // Import revalidatePath for explicit revalidation
+import { revalidatePath } from 'next/cache';
 
 import UserReviewCard from "@/_components/account/UserReviewCard"; // Client Component for individual review display
 import { ArrowLeft } from "lucide-react";
@@ -35,8 +34,6 @@ export default async function AccountReviewsPage() {
   const handleReviewAction = async () => {
     "use server"; // Mark this function as a Server Action
     revalidatePath('/account/reviews');
-    // Optionally, revalidate the product page if reviews are displayed there
-    // revalidatePath(`/products/${review.product.slug}`); // This would require the slug
   };
 
   return (
@@ -68,7 +65,7 @@ export default async function AccountReviewsPage() {
               <UserReviewCard
                 key={review.id}
                 review={review}
-                onReviewAction={handleReviewAction} // Pass the Server Action
+                onReviewAction={handleReviewAction}
               />
             ))}
           </div>

@@ -1,12 +1,12 @@
 // src/app/about/page.tsx
 import React from 'react';
 import Link from 'next/link';
-import { Sparkles } from 'lucide-react'; // Importing a friendly icon
+import { Sparkles } from 'lucide-react';
 
 export default function AboutPage() {
   return (
     <div className="container mx-auto px-4 py-12 text-(--color-font) min-h-[calc(100vh-64px)] flex flex-col items-center justify-center">
-      <Sparkles className="w-20 h-20 text-(--color-primary) mb-6 animate-pulse" /> {/* Added icon */}
+      <Sparkles className="w-20 h-20 text-(--color-primary) mb-6 animate-pulse" />
       <h1 className="text-4xl font-bold text-gray-900 mb-6 text-center">Hello from HotShop!</h1>
       <p className="text-lg text-gray-700 mb-4 leading-relaxed text-center max-w-2xl">
         Hey there! We&apos;re HotShop, and we&apos;re super excited you stopped by. This project is a passion

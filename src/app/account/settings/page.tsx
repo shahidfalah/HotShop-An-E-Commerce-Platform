@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/account/settings/page.tsx
-// This is a Server Component. No "use client" directive.
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -18,7 +17,7 @@ interface UserProfile {
   name: string | null;
   email: string | null;
   image: string | null;
-  role: string; // Assuming role is a string
+  role: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,7 +26,7 @@ export default async function AccountSettingsPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    redirect('/login'); // Redirect unauthenticated users
+    redirect('/login');
   }
 
   const userId = session.user.id;
@@ -50,10 +49,7 @@ export default async function AccountSettingsPage() {
   const handleProfileUpdated = async () => {
     "use server"; // Mark this function as a Server Action
     revalidatePath('/account'); // Revalidate the main account page
-    revalidatePath('/account/settings'); // Revalidate the settings page itself
-    // You might also want to revalidate the session if the user's name/image is shown in the header
-    // This typically involves revalidating the root layout or a specific segment.
-    // For simplicity, we'll rely on the paths above.
+    revalidatePath('/account/settings');
   };
 
   return (

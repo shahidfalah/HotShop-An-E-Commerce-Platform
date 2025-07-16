@@ -1,16 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/account/page.tsx
-// This is now a Server Component. NO "use client" directive here.
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth"; // Your NextAuth configuration
 import { redirect } from "next/navigation"; // For server-side redirects
-// Import Client Components that will handle interactivity
 import ProfileInfo from "@/_components/account/ProfileInfo";
-import AccountItem from "@/_components/account/AccountItem"; // AccountItem needs to be a Client Component
+import AccountItem from "@/_components/account/AccountItem"; // Client Component
 import AccountSection from "@/_components/account/AccountSection";
-import AccountStats from "@/_components/account/AccountStats"; // AccountStats needs to be a Client Component
-import LogoutButton from "@/_components/account/LogoutButton"; // This will be a new Client Component
+import AccountStats from "@/_components/account/AccountStats"; // Client Component
+import LogoutButton from "@/_components/account/LogoutButton"; // Client Component
 
 // Import services for direct database access
 import { OrderService } from "@/lib/database/order.service";
@@ -62,8 +60,8 @@ export default async function AccountPage() {
   const user = {
     name: session.user.name || "Guest",
     email: session.user.email || "",
-    image: session.user.image || "/defaultProfileImage.jpeg", // Ensure you have a default image
-    role: (session.user as any).role || "User", // Assuming role is on session.user
+    image: session.user.image || "/defaultProfileImage.jpeg",
+    role: (session.user as any).role || "User",
   };
 
   // Default stats if fetching fails

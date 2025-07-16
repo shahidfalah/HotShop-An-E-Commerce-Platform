@@ -10,7 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/_components/ui/button";
 import { dispatchCartUpdated, dispatchWishlistUpdated } from '@/lib/events';
-import { toast } from 'react-hot-toast'; // Import toast for notifications
+import { toast } from 'react-hot-toast';
 
 // Define interfaces based on your API response for wishlist items
 interface WishlistedProduct {
@@ -21,7 +21,7 @@ interface WishlistedProduct {
   salePrice: number | null;
   images: string[];
   stock: number;
-  isInCartByUser?: boolean; // Expected from server-side fetch
+  isInCartByUser?: boolean;
 }
 
 interface WishlistItem {
@@ -34,12 +34,12 @@ interface WishlistItem {
 
 export default function WishlistPage() {
   const router = useRouter();
-  const { status: authStatus } = useSession(); // Renamed to authStatus for clarity
+  const { status: authStatus } = useSession();
 
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAddingOrRemovingCart, setIsAddingOrRemovingCart] = useState<string | null>(null); // To track loading state per product ID
+  const [isAddingOrRemovingCart, setIsAddingOrRemovingCart] = useState<string | null>(null);
 
   const fetchWishlist = useCallback(async () => {
     setLoading(true);
@@ -87,8 +87,8 @@ export default function WishlistPage() {
       }
 
       toast.success('Item removed from wishlist!');
-      fetchWishlist(); // Re-fetch wishlist to update UI
-      dispatchWishlistUpdated(); // Dispatch custom event for header update
+      fetchWishlist();
+      dispatchWishlistUpdated();
 
     } catch (err: any) {
       console.error("Error removing from wishlist:", err);
@@ -96,7 +96,7 @@ export default function WishlistPage() {
     }
   };
 
-  // NEW: Function to handle adding to cart (from ProductCard logic)
+  // Function to handle adding to cart (from ProductCard logic)
   const handleAddToCart = async (productId: string, productTitle: string, productStock: number) => {
     setIsAddingOrRemovingCart(productId); // Set loading state for this specific product
 
@@ -151,7 +151,7 @@ export default function WishlistPage() {
     }
   };
 
-  // NEW: Function to handle removing from cart (from ProductCard logic)
+  // Function to handle removing from cart (from ProductCard logic)
   const handleRemoveFromCart = async (productId: string, productTitle: string) => {
     setIsAddingOrRemovingCart(productId); // Use the same loading state for removing
 
@@ -300,7 +300,7 @@ export default function WishlistPage() {
                   className={`px-4 py-2 text-sm flex items-center justify-center ${
                     item.product.isInCartByUser
                       ? 'bg-red-500 text-white hover:bg-red-600' // Red for remove
-                      : 'bg-(--color-primary) text-(--color-background) hover:bg-(--color-primary-hover)' // Primary for add
+                      : 'bg-(--color-primary) text-(--color-background) hover:bg-(--color-primary-hover)'
                   }`}
                   disabled={item.product.stock === 0 || isAddingOrRemovingCart === item.productId}
                 >

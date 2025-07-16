@@ -117,26 +117,29 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000" # For local development
 1. In your Supabase project, go to **Storage**.  
 2. Create new buckets named product-images and category-images.  
 3. Set their policies to allow public reads (if you want images to be publicly accessible without authentication). A common policy for public read is:  
-   CREATE POLICY "Allow public read access for product images" ON storage.objects FOR SELECT USING (bucket\_id \= 'product-images');  
-   CREATE POLICY "Allow public read access for category images" ON storage.objects FOR SELECT USING (bucket\_id \= 'category-images');
+   ```
+   CREATE POLICY "Allow public read access for product images" ON storage.objects FOR SELECT USING (bucket_id = 'product-images');  
+   CREATE POLICY "Allow public read access for category images" ON storage.objects FOR SELECT USING (bucket_id = 'category-images');
+   ```
 
    And for authenticated upload:  
-   CREATE POLICY "Allow authenticated product image uploads" ON storage.objects FOR INSERT WITH CHECK (bucket\_id \= 'product-images' AND auth.role() \= 'authenticated');  
-   CREATE POLICY "Allow authenticated category image uploads" ON storage.objects FOR INSERT WITH CHECK (bucket\_id \= 'category-images' AND auth.role() \= 'authenticated');
-
+   ```
+   CREATE POLICY "Allow authenticated product image uploads" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'product-images' AND auth.role() = 'authenticated');  
+   CREATE POLICY "Allow authenticated category image uploads" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'category-images' AND auth.role() = 'authenticated');
+   ```
    Adjust policies as per your security requirements.
 
 ### **5\. Run Prisma Migrations**
 
 This will sync your Prisma schema with your Supabase PostgreSQL database.
-
+```
 npx prisma migrate dev \--name init \# Use 'init' or a descriptive name
-
+```
 ### **6\. Run the Development Server**
 ```
 npm run dev  
 ```
-\# or
+or
 ```  
 yarn dev
 ```

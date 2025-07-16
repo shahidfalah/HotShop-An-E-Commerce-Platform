@@ -15,15 +15,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter()
 
   useEffect(() => {
-    if (status === "loading") return // Still loading
+    if (status === "loading") return
 
     if (!session) {
       router.push("/login")
       return
     }
-
-    // Check if user is admin (you'll need to add role to session)
-    // For now, we'll assume admin check is done on the server side
   }, [session, status, router])
 
   if (status === "loading") {

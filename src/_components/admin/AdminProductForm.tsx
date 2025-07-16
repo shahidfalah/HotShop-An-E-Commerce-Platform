@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/_components/ui/checkbox";
 import { useSession } from "next-auth/react";
 import imageCompression from 'browser-image-compression';
-import { toast } from 'react-hot-toast'; // For user feedback
+import { toast } from 'react-hot-toast';
 
 interface Category {
   id: string;
@@ -32,11 +32,11 @@ export default function AdminProductForm() {
     saleStart: "",
     saleEnd: "",
     brand: "",
-    width: "", // Still string in form state
-    height: "", // Still string in form state
+    width: "",
+    height: "",
     stock: "",
     categoryId: "",
-    images: [] as File[], // Array of File objects
+    images: [] as File[],
     isFlashSale: false,
     createdById: session?.user?.id || "",
   });
@@ -106,14 +106,12 @@ export default function AdminProductForm() {
     
     // Append all form data fields to FormData object
     Object.entries(formData).forEach(([k, v]) => {
-      // Skip images as they are handled separately
+
       if (k === "images") return; 
 
-      // Handle boolean for isFlashSale
       if (k === "isFlashSale") {
-        fd.append(k, String(v)); // Convert boolean to string
+        fd.append(k, String(v));
       } else if (v !== null && v !== undefined) {
-        // Append other fields, ensuring they are not null/undefined
         fd.append(k, v as string);
       }
     });
@@ -129,9 +127,8 @@ export default function AdminProductForm() {
       // Check if the response content type is JSON before parsing
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        const errorText = await res.text(); // Read as text if not JSON
+        const errorText = await res.text();
         console.error("Non-JSON response from /api/admin/products:", errorText);
-        // Attempt to parse if it looks like a Vercel 413 error page
         if (errorText.includes("Request Entity Too Large")) {
           throw new Error("File size too large. Please try smaller images or reduce quantity.");
         }
@@ -179,7 +176,7 @@ export default function AdminProductForm() {
     }));
   };
 
-  // NEW: Handle file change with compression
+  // Handle file change with compression
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     const compressedFiles: File[] = [];
@@ -212,7 +209,7 @@ export default function AdminProductForm() {
       console.error('Image compression failed:', error);
       setMessage({ type: "error", text: `Image processing failed: ${error.message}. Please try again.` });
       toast.error(`Image processing failed: ${error.message}.`);
-      setFormData(f => ({ ...f, images: [] })); // Clear images on error
+      setFormData(f => ({ ...f, images: [] }));
     } finally {
       setIsLoading(false); // Hide loading
     }

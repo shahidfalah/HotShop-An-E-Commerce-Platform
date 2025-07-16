@@ -1,5 +1,5 @@
 // src/_components/admin/AdminDashboard.tsx
-"use client"; // This is a Client Component
+"use client";
 
 import React, { useState } from 'react';
 import AdminCategoryForm from '@/_components/admin/AdminCategoryForm';
@@ -20,7 +20,7 @@ interface AdminStats {
 }
 
 interface AdminDashboardProps {
-  initialStats: AdminStats | null; // Stats passed from the server
+  initialStats: AdminStats | null;
 }
 
 export default function AdminDashboard({ initialStats }: AdminDashboardProps) {
@@ -36,13 +36,6 @@ export default function AdminDashboard({ initialStats }: AdminDashboardProps) {
     reviews: { total: 0, avgRating: 0 },
     orders: { total: 0, revenue: 0 }
   });
-
-  // If you later implement client-side refetching, you'd use useEffect here.
-  // For now, the stats are passed once from the server.
-  // useEffect(() => {
-  //   // You could add logic here to refetch stats periodically or after form submissions
-  //   // if you want real-time updates without a full page reload.
-  // }, []);
 
   // Stat Card Component (moved inside AdminDashboard for simplicity, or keep external if reused)
   function StatCard({ title, value, change, secondaryValue, icon, color }: {

@@ -16,7 +16,7 @@ interface Review {
   id: string;
   rating: number;
   comment: string;
-  createdAt: Date; // Prisma returns Date objects
+  createdAt: Date;
   product: {
     id: string;
     title: string;
@@ -27,7 +27,6 @@ interface Review {
 
 interface UserReviewCardProps {
   review: Review;
-  // Callback to notify parent (AccountReviewsPage) to revalidate data
   onReviewAction: () => void;
 }
 
@@ -46,7 +45,7 @@ export default function UserReviewCard({ review, onReviewAction }: UserReviewCar
 
   const handleReviewUpdated = () => {
     setIsEditModalOpen(false);
-    onReviewAction(); // Trigger parent to revalidate
+    onReviewAction();
   };
 
   const handleConfirmDelete = async () => {
@@ -66,7 +65,7 @@ export default function UserReviewCard({ review, onReviewAction }: UserReviewCar
 
       toast.success('Review deleted successfully!');
       setIsDeleteModalOpen(false);
-      onReviewAction(); // Trigger parent to revalidate
+      onReviewAction();
     } catch (err: any) {
       console.error("Error deleting review:", err);
       toast.error(err.message || 'Failed to delete review.');
@@ -83,7 +82,7 @@ export default function UserReviewCard({ review, onReviewAction }: UserReviewCar
 
   const productImageUrl = review.product.images && review.product.images.length > 0
     ? review.product.images[0]
-    : `https://placehold.co/64x64/E0E0E0/0D171C?text=No+Image`; // Fallback image
+    : `https://placehold.co/64x64/E0E0E0/0D171C?text=No+Image`;
 
   return (
     <div className="bg-(--color-background) rounded-lg p-4 shadow-sm border border-(--color-border) flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">

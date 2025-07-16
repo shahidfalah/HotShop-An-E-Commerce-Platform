@@ -7,7 +7,7 @@ import { Button } from "@/_components/ui/button";
 import { Input } from "@/_components/ui/input";
 import { Label } from "@/_components/ui/label";
 import Image from 'next/image';
-import { toast } from 'react-hot-toast'; // For notifications
+import { toast } from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 
 interface UserProfile {
@@ -19,7 +19,6 @@ interface UserProfile {
 
 interface ProfileSettingsFormProps {
   initialProfile: UserProfile;
-  // Optional callback to notify parent (e.g., to revalidate session if needed)
   onProfileUpdated?: () => void;
 }
 
@@ -96,7 +95,7 @@ export default function ProfileSettingsForm({ initialProfile, onProfileUpdated }
               className="object-cover"
               sizes="96px"
               onError={(e) => {
-                e.currentTarget.src = "/defaultProfileImage.jpeg"; // Fallback on error
+                e.currentTarget.src = "/defaultProfileImage.jpeg";
               }}
             />
           </div>

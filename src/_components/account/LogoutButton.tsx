@@ -19,12 +19,10 @@ export default function LogoutButton() {
   };
 
   return (
-    // Reusing AccountItem for consistent styling, but overriding onClick
     <AccountItem
-      icon="LogOut" // Pass the LogOut component directly
+      icon="LogOut"
       title={isLoggingOut ? "Logging out..." : "Log Out"}
       subtitle="Securely sign out"
-      // No 'path' prop here, as it's a button with an onClick handler
       onClick={handleLogout}
       variant="danger"
     />

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import type React from "react"
@@ -15,17 +14,16 @@ import { type LucideProps } from "lucide-react"; // Import LucideProps for typin
 // --- New: Define a list of common icons you want to offer ---
 // You can expand this list or fetch it dynamically if you have many
 const commonIcons = [
-  "PackageSearch", // Example for "Search" or "Products"
-  "Smartphone",    // For "Phones"
-  "Laptop",        // For "Computers"
-  "Headphones",    // For "Audio"
-  "Watch",         // For "Wearables"
-  "Gamepad",       // For "Gaming"
-  "Camera",        // For "Cameras"
-  "Shirt",         // For "Apparel"
-  "Home",          // General
-  "ClipboardList", // For "Order" or "Lists"
-  // Add more as needed from lucide-react documentation
+  "PackageSearch",
+  "Smartphone",   
+  "Laptop",       
+  "Headphones",   
+  "Watch",        
+  "Gamepad",      
+  "Camera",       
+  "Shirt",        
+  "Home",         
+  "ClipboardList",
 ];
 
 export default function AdminCategoryForm() {
@@ -33,7 +31,7 @@ export default function AdminCategoryForm() {
     title: "",
     description: "",
     image: null as File | null,
-    icon: "", // This will store the string name of the Lucide icon (e.g., "Smartphone")
+    icon: "",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -47,10 +45,10 @@ export default function AdminCategoryForm() {
       const form = new FormData()
       form.append("title", formData.title)
       form.append("description", formData.description)
-      form.append("icon", formData.icon) // Send the icon name string
+      form.append("icon", formData.icon)
       if (formData.image) form.append("image", formData.image)
 
-      console.log("Submitting form data:", formData.title, formData.description, formData.icon, formData.image?.name) // Log names for files
+      console.log("Submitting form data:", formData.title, formData.description, formData.icon, formData.image?.name)
       
       const response = await fetch("/api/admin/categories", {
         method: "POST",
@@ -66,7 +64,7 @@ export default function AdminCategoryForm() {
         setMessage({ type: "error", text: result.error })
       }
     } catch (error) {
-      console.error("Error creating category:", error); // Log actual error for debugging
+      console.error("Error creating category:", error);
       setMessage({ type: "error", text: "Failed to create category" })
     } finally {
       setIsLoading(false)
@@ -89,7 +87,7 @@ export default function AdminCategoryForm() {
     }))
   }
 
-  // --- New: Handle icon selection ---
+  // --- Handle icon selection ---
   const handleIconSelect = (iconName: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -97,7 +95,7 @@ export default function AdminCategoryForm() {
     }));
   };
 
-  // --- New: Render the selected icon for preview ---
+  // --- Render the selected icon for preview ---
   const SelectedIconComponent = formData.icon ? (LucideIcons[formData.icon as keyof typeof LucideIcons] as React.ElementType<LucideProps>)
   : null;
 
@@ -133,13 +131,12 @@ export default function AdminCategoryForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Category Image</Label> {/* Changed label from 'URL' to 'Image' */}
+            <Label htmlFor="image">Category Image</Label>
             <Input
               id="image"
               name="image"
               type="file"
               accept="image/*"
-              // required // Consider if image is always required or optional
               onChange={handleFileChange}
               placeholder="https://example.com/image.jpg"
             />
@@ -156,14 +153,14 @@ export default function AdminCategoryForm() {
                 return IconComponent ? (
                   <button
                     key={iconName}
-                    type="button" // Important: Prevent form submission
+                    type="button"
                     onClick={() => handleIconSelect(iconName)}
                     className={`p-2 rounded-md border flex items-center justify-center text-xl transition-all duration-200
                       ${formData.icon === iconName ? "bg-blue-200 border-blue-500 text-blue-700" : "bg-white hover:bg-gray-100 border-gray-200"}
                     `}
-                    title={iconName} // Tooltip on hover
+                    title={iconName}
                   >
-                    <IconComponent size={24} /> {/* Adjust size as needed */}
+                    <IconComponent size={24} />
                   </button>
                 ) : null;
               })}

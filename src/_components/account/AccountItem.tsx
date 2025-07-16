@@ -8,7 +8,7 @@ import * as LucideIcons from 'lucide-react'; // Import all Lucide icons
 import { type LucideProps } from 'lucide-react'; // Import LucideProps for typing
 
 interface AccountItemProps {
-  icon: string; // Changed type to string (the name of the Lucide icon)
+  icon: string;
   title: string;
   subtitle?: string;
   count?: number;
@@ -18,7 +18,7 @@ interface AccountItemProps {
 }
 
 export default function AccountItem({
-  icon, // Now icon is a string
+  icon,
   title,
   subtitle,
   count,
@@ -28,7 +28,6 @@ export default function AccountItem({
 }: AccountItemProps) {
   const isLogout = variant === "danger";
 
-  // Basic validation: ensure at least one of path or onClick is provided
   if (!path && !onClick) {
     console.error("AccountItem: Either 'path' or 'onClick' prop must be provided.");
     return null;
